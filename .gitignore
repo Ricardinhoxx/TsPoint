@@ -1,0 +1,17 @@
+.DS_Store
+.env
+.env.local
+.venv
+__pycache__/
+*.pyc
+
+web/node_modules/
+web/.next/
+web/out/
+web/.env.local
+
+face-api/.env
+face-api/.venv/
+
+db/postgres_data/
+

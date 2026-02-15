@@ -1,0 +1,178 @@
+﻿"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useFaceTracking } from "@/lib/faceTracking";
+
+type Match = {
+  matched: boolean;
+  funcionario_id?: number;
+  nome?: string;
+  score?: number;
+};
+
+export default function CameraModal({
+  onClose,
+  onCapture,
+  recognizing,
+  match
+}: {
+  onClose: () => void;
+  onCapture: (imageB64: string) => Promise<void> | void;
+  recognizing?: boolean;
+  match?: Match | null;
+}) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const { faceBox, engine } = useFaceTracking(videoRef);
+
+  useEffect(() => {
+    async function start() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user", width: { ideal: 640 } },
+          audio: false
+        });
+        streamRef.current = stream;
+        if (videoRef.current) videoRef.current.srcObject = stream;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Falha ao acessar camera");
+      }
+    }
+    start().catch(() => null);
+    return () => {
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    };
+  }, []);
+
+  async function capture() {
+    if (!videoRef.current) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const video = videoRef.current;
+      const canvas = document.createElement("canvas");
+      const width = 640;
+      const scale = width / (video.videoWidth || width);
+      const height = Math.round((video.videoHeight || width) * scale);
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas indisponivel");
+      ctx.drawImage(video, 0, 0, width, height);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+      const b64 = dataUrl.split(",")[1] ?? "";
+      if (!b64) throw new Error("Falha ao capturar frame");
+      await onCapture(b64);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao capturar");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const cardSide =
+    faceBox && faceBox.leftPct + faceBox.widthPct > 68 ? "left" : "right";
+  const cardLeftPct = faceBox
+    ? cardSide === "right"
+      ? Math.min(98, faceBox.leftPct + faceBox.widthPct + 2)
+      : Math.max(2, faceBox.leftPct - 2)
+    : 0;
+
+  const cardText = match?.matched
+    ? {
+        kicker: "Identificacao",
+        title: match.nome ?? "Usuario identificado",
+        subtitle: `score=${match.score?.toFixed(3) ?? "n/a"}`
+      }
+    : {
+        kicker: "Cadastro facial",
+        title: match ? "Nenhum match" : "Aponte para a camera",
+        subtitle: "Foto frontal, boa iluminacao."
+      };
+
+  const stageStatusClass = (() => {
+    if (!faceBox) return "videoStage--noface";
+    if (recognizing || busy) return "videoStage--busy";
+    if (match && !match.matched) return "videoStage--nomatch";
+    return "videoStage--face";
+  })();
+
+  return (
+    <div className="modalBackdrop" role="dialog" aria-modal="true">
+      <div className="modal">
+        <div className="row" style={{ justifyContent: "space-between" }}>
+          <h2>Camera</h2>
+          <button className="secondary" onClick={onClose}>
+            Fechar
+          </button>
+        </div>
+        <div className="spacer" />
+        {error ? (
+          <>
+            <div className="card" style={{ borderColor: "#8a1f1f" }}>
+              Erro: {error}
+            </div>
+            <div className="spacer" />
+          </>
+        ) : null}
+        <div
+          className={["videoStage", stageStatusClass].filter(Boolean).join(" ")}
+        >
+          <video ref={videoRef} autoPlay playsInline />
+          {faceBox ? (
+            <div
+              className="faceBox"
+              style={{
+                left: `${faceBox.leftPct}%`,
+                top: `${faceBox.topPct}%`,
+                width: `${faceBox.widthPct}%`,
+                height: `${faceBox.heightPct}%`
+              }}
+            />
+          ) : (
+            <div className="faceBox faceBox--placeholder" />
+          )}
+
+          {faceBox ? (
+            <div
+              className="faceCard"
+              style={{
+                left: `${cardLeftPct}%`,
+                top: `${faceBox.topPct}%`,
+                transform:
+                  cardSide === "left"
+                    ? "translate(calc(-100% - 12px), 0)"
+                    : "translate(12px, 0)"
+              }}
+            >
+              <div className="faceCardKicker">
+                {recognizing || busy ? "Reconhecendo..." : cardText.kicker}
+              </div>
+              <div className="faceCardTitle">
+                {recognizing || busy ? "Aguarde" : cardText.title}
+              </div>
+              <div className="faceCardSubtitle">
+                {recognizing || busy ? "" : cardText.subtitle}
+              </div>
+            </div>
+          ) : null}
+        </div>
+        <div className="spacer" />
+        <div className="row">
+          <button onClick={capture} disabled={busy}>
+            {busy ? "Enviando..." : "Capturar 1 frame"}
+          </button>
+          <small className="muted">
+            Dica: luz frontal + rosto centralizado.
+            {engine === "loading" ? <> (Carregando detector...)</> : null}
+            {engine === "none" ? <> (Deteccao de rosto indisponivel.)</> : null}
+          </small>
+        </div>
+      </div>
+    </div>
+  );
+}

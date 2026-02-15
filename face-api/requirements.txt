@@ -1,0 +1,11 @@
+fastapi==0.110.0
+uvicorn[standard]==0.27.1
+pydantic==2.6.4
+psycopg[binary]==3.1.18
+numpy==1.26.4
+pgvector==0.2.5
+
+# Real face embeddings (CPU)
+insightface==0.7.3
+onnxruntime==1.17.3
+opencv-python-headless==4.9.0.80
