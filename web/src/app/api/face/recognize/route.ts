@@ -35,17 +35,29 @@ export async function POST(req: Request) {
   const faceApiUrl = requiredEnv("FACE_API_URL").replace(/\/$/, "");
   const secret = requiredEnv("FACE_API_SECRET");
 
-  const res = await fetch(`${faceApiUrl}/recognize`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-internal-secret": secret
-    },
-    body: JSON.stringify({
-      unidade_id: unidadeId,
-      image_b64: imageB64
-    })
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${faceApiUrl}/recognize`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-internal-secret": secret
+      },
+      body: JSON.stringify({
+        unidade_id: unidadeId,
+        image_b64: imageB64
+      }),
+      signal: AbortSignal.timeout(20000)
+    });
+  } catch (err) {
+    const isTimeout =
+      err instanceof Error &&
+      (err.name === "TimeoutError" || err.name === "AbortError");
+    return NextResponse.json(
+      { error: isTimeout ? "FACE_API_TIMEOUT" : "FACE_API_UNREACHABLE" },
+      { status: isTimeout ? 504 : 502 }
+    );
+  }
 
   const data = await res.json().catch(() => null);
   if (!res.ok) {
