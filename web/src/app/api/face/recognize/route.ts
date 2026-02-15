@@ -47,7 +47,7 @@ export async function POST(req: Request) {
         unidade_id: unidadeId,
         image_b64: imageB64
       }),
-      signal: AbortSignal.timeout(20000)
+      signal: AbortSignal.timeout(60000)
     });
   } catch (err) {
     const isTimeout =
