@@ -80,7 +80,11 @@ def startup():
   if _is_fake_mode():
     return
   if os.getenv("FACE_PRELOAD", "0") == "1":
-    app.state.face_engine = _load_face_engine()
+    try:
+      app.state.face_engine = _load_face_engine()
+    except Exception as exc:
+      # Do not crash the API on preload failures; allow lazy-load on first request.
+      print(f"[startup] FACE_PRELOAD failed: {exc}")
 
 
 def image_to_embedding(image_bytes: bytes) -> np.ndarray:
