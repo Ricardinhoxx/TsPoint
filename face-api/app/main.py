@@ -75,10 +75,12 @@ def _load_face_engine():
 
 @app.on_event("startup")
 def startup():
+  # Keep startup fast on small instances. Heavy model load can be deferred.
+  app.state.face_engine = None
   if _is_fake_mode():
-    app.state.face_engine = None
     return
-  app.state.face_engine = _load_face_engine()
+  if os.getenv("FACE_PRELOAD", "0") == "1":
+    app.state.face_engine = _load_face_engine()
 
 
 def image_to_embedding(image_bytes: bytes) -> np.ndarray:
@@ -87,7 +89,11 @@ def image_to_embedding(image_bytes: bytes) -> np.ndarray:
 
   engine = getattr(app.state, "face_engine", None)
   if engine is None:
-    raise HTTPException(status_code=500, detail="FACE_ENGINE_NOT_READY")
+    try:
+      engine = _load_face_engine()
+      app.state.face_engine = engine
+    except Exception as exc:
+      raise HTTPException(status_code=500, detail="FACE_ENGINE_LOAD_FAILED") from exc
 
   try:
     import cv2  # type: ignore
