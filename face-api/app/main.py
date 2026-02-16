@@ -164,7 +164,11 @@ class Db:
     return conn
 
 
-db = Db(url=required_env("DATABASE_URL"))
+def get_db() -> Db:
+  url = os.getenv("DATABASE_URL")
+  if not url:
+    raise HTTPException(status_code=500, detail="MISSING_DATABASE_URL")
+  return Db(url=url)
 
 
 class RecognizeIn(BaseModel):
@@ -202,6 +206,7 @@ def recognize(payload: RecognizeIn, x_internal_secret: str | None = Header(defau
   query = image_to_embedding(image_bytes)
   threshold = get_threshold()
 
+  db = get_db()
   with db.connect() as conn:
     with conn.cursor() as cur:
       cur.execute(
@@ -241,6 +246,7 @@ def enroll(payload: EnrollIn, x_internal_secret: str | None = Header(default=Non
     image_bytes = decode_b64_image(img_b64)
     embeddings.append(image_to_embedding(image_bytes))
 
+  db = get_db()
   with db.connect() as conn:
     with conn.cursor() as cur:
       cur.execute("SELECT 1 FROM funcionario WHERE id = %s LIMIT 1", (payload.funcionario_id,))
