@@ -3,6 +3,8 @@ import { getSql } from "@/lib/db";
 import { isAdminSession, requireAuth } from "@/lib/rbac";
 
 export const runtime = "nodejs";
+export const preferredRegion = "gru1";
+export const maxDuration = 60;
 
 function requiredEnv(name: string): string {
   const value = process.env[name];
@@ -56,7 +58,7 @@ export async function POST(req: Request) {
         "x-internal-secret": secret
       },
       body: JSON.stringify({ funcionario_id: funcionarioId, images_b64: images }),
-      signal: AbortSignal.timeout(20000)
+      signal: AbortSignal.timeout(60000)
     });
   } catch (err) {
     const isTimeout =

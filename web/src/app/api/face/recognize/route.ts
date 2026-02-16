@@ -2,6 +2,8 @@
 import { isAdminSession, parsePositiveInt, requireAuth } from "@/lib/rbac";
 
 export const runtime = "nodejs";
+export const preferredRegion = "gru1";
+export const maxDuration = 60;
 
 function requiredEnv(name: string): string {
   const value = process.env[name];
