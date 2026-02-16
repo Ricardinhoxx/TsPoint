@@ -60,7 +60,7 @@ def _load_face_engine():
   # Lazy import so devs can still run in FAKE mode without heavy deps.
   from insightface.app import FaceAnalysis  # type: ignore
 
-  model = os.getenv("FACE_MODEL", "buffalo_l")
+  model = os.getenv("FACE_MODEL", "buffalo_s")
   det = os.getenv("FACE_DET_SIZE", "640").strip()
   try:
     det_size = int(det)
@@ -97,7 +97,10 @@ def image_to_embedding(image_bytes: bytes) -> np.ndarray:
       engine = _load_face_engine()
       app.state.face_engine = engine
     except Exception as exc:
-      raise HTTPException(status_code=500, detail="FACE_ENGINE_LOAD_FAILED") from exc
+      raise HTTPException(
+        status_code=500,
+        detail=f"FACE_ENGINE_LOAD_FAILED: {str(exc)[:180]}",
+      ) from exc
 
   try:
     import cv2  # type: ignore

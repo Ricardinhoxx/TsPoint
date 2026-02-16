@@ -6,7 +6,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends build-essential libglib2.0-0 libgl1 \
+    && apt-get install -y --no-install-recommends build-essential libglib2.0-0 libgl1 libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 # This Dockerfile is intended for builds where repository root is the build context.
