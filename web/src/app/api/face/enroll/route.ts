@@ -58,7 +58,7 @@ export async function POST(req: Request) {
         "x-internal-secret": secret
       },
       body: JSON.stringify({ funcionario_id: funcionarioId, images_b64: images }),
-      signal: AbortSignal.timeout(60000)
+      signal: AbortSignal.timeout(55000)
     });
   } catch (err) {
     const isTimeout =
