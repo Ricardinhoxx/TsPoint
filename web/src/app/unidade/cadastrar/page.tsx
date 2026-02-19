@@ -51,7 +51,12 @@ export default function CadastrarColaboradorPage() {
       const res = await fetch("/api/funcionarios", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ nome, turno, local_tipo: localTipo })
+        body: JSON.stringify({
+          nome,
+          turno,
+          local_tipo: localTipo,
+          unidade_id: unidade?.id ?? undefined
+        })
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
@@ -192,4 +197,3 @@ export default function CadastrarColaboradorPage() {
     </div>
   );
 }
-

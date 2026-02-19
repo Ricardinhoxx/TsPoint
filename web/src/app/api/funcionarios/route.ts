@@ -128,7 +128,7 @@ export async function POST(req: Request) {
 
     const isAdmin = isAdminSession(auth.session);
     const unidadeId = isAdmin
-      ? parsePositiveInt(body?.unidade_id)
+      ? (parsePositiveInt(body?.unidade_id) ?? auth.session.supervisor.unidade_id)
       : auth.session.supervisor.unidade_id;
 
     if (!unidadeId) {
