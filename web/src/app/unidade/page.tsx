@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import CameraModal from "@/components/CameraModal";
 import Image from "next/image";
 import Link from "next/link";
@@ -18,6 +18,9 @@ export default function MinhaUnidadePage() {
   const [unidade, setUnidade] = useState<{ id: number; nome: string } | null>(
     null
   );
+  const [unidades, setUnidades] = useState<Array<{ id: number; nome: string }>>([]);
+  const [selectedUnidadeId, setSelectedUnidadeId] = useState<number | null>(null);
+  const [contextReady, setContextReady] = useState(false);
   const [role, setRole] = useState<"ADMIN" | "SUPERVISOR">("SUPERVISOR");
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -31,14 +34,15 @@ export default function MinhaUnidadePage() {
   } | null>(null);
   const [pontoResult, setPontoResult] = useState<string | null>(null);
   const roleLabel = role === "ADMIN" ? "Administrador" : "Supervisor";
-  const unidadeResponsavel = unidade?.nome ?? (role === "ADMIN" ? "Todas as unidades" : "Nao definida");
+  const unidadeResponsavel =
+    unidade?.nome ?? (role === "ADMIN" ? "Selecione uma unidade" : "Nao definida");
 
   const matchedFuncionario = useMemo(() => {
     if (!match?.matched || !match.funcionario_id) return null;
     return funcionarios.find((f) => f.id === match.funcionario_id) ?? null;
   }, [funcionarios, match]);
 
-  async function load() {
+  async function loadContext() {
     setLoadError(null);
     const uRes = await fetch("/api/unidade/me");
     if (uRes.status === 401) {
@@ -50,10 +54,35 @@ export default function MinhaUnidadePage() {
       setLoadError(u?.error ?? `Erro ao carregar unidade (HTTP ${uRes.status})`);
       return;
     }
-    setUnidade(u.unidade ?? null);
-    setRole((u?.role === "ADMIN" ? "ADMIN" : "SUPERVISOR") as "ADMIN" | "SUPERVISOR");
 
-    const fRes = await fetch("/api/funcionarios");
+    const isAdmin = u?.role === "ADMIN";
+    setRole((isAdmin ? "ADMIN" : "SUPERVISOR") as "ADMIN" | "SUPERVISOR");
+
+    if (isAdmin) {
+      const list = Array.isArray(u?.unidades)
+        ? (u.unidades as Array<{ id: number; nome: string }>)
+        : [];
+      setUnidades(list);
+      const defaultUnidade = u?.unidade ?? list[0] ?? null;
+      setUnidade(defaultUnidade);
+      setSelectedUnidadeId(defaultUnidade?.id ?? null);
+    } else {
+      setUnidades([]);
+      setUnidade(u.unidade ?? null);
+      setSelectedUnidadeId(u?.unidade?.id ?? null);
+    }
+
+    setContextReady(true);
+  }
+
+  const loadFuncionarios = useCallback(async () => {
+    if (!contextReady) return;
+    const query =
+      role === "ADMIN" && selectedUnidadeId
+        ? `?unidade_id=${selectedUnidadeId}`
+        : "";
+
+    const fRes = await fetch(`/api/funcionarios${query}`);
     if (fRes.status === 401) {
       window.location.href = "/login";
       return;
@@ -66,21 +95,44 @@ export default function MinhaUnidadePage() {
       return;
     }
     setFuncionarios(Array.isArray(f.funcionarios) ? f.funcionarios : []);
-  }
+  }, [contextReady, role, selectedUnidadeId]);
 
   useEffect(() => {
-    load().catch(() => null);
+    loadContext().catch(() => null);
   }, []);
+
+  useEffect(() => {
+    loadFuncionarios().catch(() => null);
+  }, [loadFuncionarios]);
+
+  useEffect(() => {
+    if (role !== "ADMIN") return;
+    const selected =
+      unidades.find((item) => item.id === selectedUnidadeId) ?? null;
+    if (selected) {
+      setUnidade(selected);
+    }
+  }, [role, selectedUnidadeId, unidades]);
 
   async function onCapture(imageB64: string) {
     setRecognizing(true);
     setPontoResult(null);
     setMatch(null);
     try {
+      const payload: { image_b64: string; unidade_id?: number } = {
+        image_b64: imageB64
+      };
+      if (role === "ADMIN") {
+        if (!selectedUnidadeId) {
+          throw new Error("SELECIONE_UNIDADE");
+        }
+        payload.unidade_id = selectedUnidadeId;
+      }
+
       const res = await fetch("/api/face/recognize", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ image_b64: imageB64 })
+        body: JSON.stringify(payload)
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
@@ -115,7 +167,7 @@ export default function MinhaUnidadePage() {
         data.ponto.timestamp
       ).toLocaleString()}`
     );
-    await load().catch(() => null);
+    await loadFuncionarios().catch(() => null);
   }
 
   async function logout() {
@@ -142,6 +194,20 @@ export default function MinhaUnidadePage() {
             </div>
 
             <div className="row">
+              {role === "ADMIN" ? (
+                <select
+                  value={selectedUnidadeId ?? ""}
+                  onChange={(e) => setSelectedUnidadeId(Number(e.target.value) || null)}
+                  style={{ minWidth: 220 }}
+                  aria-label="Selecionar unidade para operacao"
+                >
+                  {unidades.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.nome} (id={item.id})
+                    </option>
+                  ))}
+                </select>
+              ) : null}
               <div className="brandLockup" aria-label="Parceria Bemol e Sodexo">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
