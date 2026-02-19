@@ -227,6 +227,8 @@ video {
   border-radius: 0;
   padding: 16px 18px;
   box-shadow: none;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .brandLogo {
@@ -236,18 +238,19 @@ video {
 }
 
 .brandLogoBemol {
-  height: 46px;
+  height: 40px;
   width: auto;
 }
 
 .brandLogoSodexo {
-  height: 42px;
+  height: 34px;
   width: auto;
+  object-fit: contain;
 }
 
 .brandDivider {
   width: 1px;
-  height: 44px;
+  height: 36px;
   background: rgba(0, 0, 0, 0.2);
 }
 

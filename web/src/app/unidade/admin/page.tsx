@@ -155,7 +155,7 @@ export default function AdminAssignmentsPage() {
     <div className="containerWide">
       <div className="row" style={{ justifyContent: "space-between" }}>
         <div>
-          <h1 style={{ margin: 0 }}>Admin - Funcoes e atribuicoes</h1>
+          <h1 style={{ margin: 0 }}>Admin - Funções e atribuições</h1>
           <small className="muted">
             Defina papel e loja para supervisores e loja para colaboradores.
           </small>
@@ -213,7 +213,7 @@ export default function AdminAssignmentsPage() {
               />
             </div>
             <div>
-              <label>Itens por pagina</label>
+              <label>Itens por página</label>
               <select
                 value={String(pagination.page_size)}
                 onChange={(e) => {
@@ -246,9 +246,9 @@ export default function AdminAssignmentsPage() {
             <thead>
               <tr>
                 <th>Email</th>
-                <th>Funcao</th>
+                <th>Função</th>
                 <th>Loja</th>
-                <th>Acoes</th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -326,7 +326,7 @@ export default function AdminAssignmentsPage() {
                 <th>Status</th>
                 <th>Loja atual</th>
                 <th>Nova loja</th>
-                <th>Acoes</th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -381,7 +381,7 @@ export default function AdminAssignmentsPage() {
         <div className="spacer" />
         <div className="row" style={{ justifyContent: "space-between" }}>
           <small className="muted">
-            Pagina {pagination.page} de {pagination.total_pages} | Total: {pagination.total}
+            Página {pagination.page} de {pagination.total_pages} | Total: {pagination.total}
           </small>
           <div className="row">
             <button
@@ -396,7 +396,7 @@ export default function AdminAssignmentsPage() {
               onClick={() => load({ page: Math.min(pagination.total_pages, pagination.page + 1) })}
               disabled={loading || pagination.page >= pagination.total_pages}
             >
-              Proxima
+              Próxima
             </button>
           </div>
         </div>

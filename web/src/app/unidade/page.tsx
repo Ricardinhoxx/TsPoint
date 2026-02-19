@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import CameraModal from "@/components/CameraModal";
@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 type LocalTipo = "LOJA" | "ESCRITORIO" | "CD";
+
 type Funcionario = {
   id: number;
   nome: string;
@@ -14,13 +15,10 @@ type Funcionario = {
   status: string;
 };
 
+type Unidade = { id: number; nome: string };
+
 export default function MinhaUnidadePage() {
-  const [unidade, setUnidade] = useState<{ id: number; nome: string } | null>(
-    null
-  );
-  const [unidades, setUnidades] = useState<Array<{ id: number; nome: string }>>([]);
-  const [selectedUnidadeId, setSelectedUnidadeId] = useState<number | null>(null);
-  const [contextReady, setContextReady] = useState(false);
+  const [unidade, setUnidade] = useState<Unidade | null>(null);
   const [role, setRole] = useState<"ADMIN" | "SUPERVISOR">("SUPERVISOR");
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -33,9 +31,10 @@ export default function MinhaUnidadePage() {
     score?: number;
   } | null>(null);
   const [pontoResult, setPontoResult] = useState<string | null>(null);
+  const [contextReady, setContextReady] = useState(false);
+
   const roleLabel = role === "ADMIN" ? "Administrador" : "Supervisor";
-  const unidadeResponsavel =
-    unidade?.nome ?? (role === "ADMIN" ? "Selecione uma unidade" : "Nao definida");
+  const unidadeResponsavel = unidade?.nome ?? (role === "ADMIN" ? "Todas as unidades" : "Não definida");
 
   const matchedFuncionario = useMemo(() => {
     if (!match?.matched || !match.funcionario_id) return null;
@@ -49,53 +48,36 @@ export default function MinhaUnidadePage() {
       window.location.href = "/login";
       return;
     }
+
     const u = await uRes.json().catch(() => null);
     if (!uRes.ok) {
       setLoadError(u?.error ?? `Erro ao carregar unidade (HTTP ${uRes.status})`);
       return;
     }
 
-    const isAdmin = u?.role === "ADMIN";
-    setRole((isAdmin ? "ADMIN" : "SUPERVISOR") as "ADMIN" | "SUPERVISOR");
-
-    if (isAdmin) {
-      const list = Array.isArray(u?.unidades)
-        ? (u.unidades as Array<{ id: number; nome: string }>)
-        : [];
-      setUnidades(list);
-      const defaultUnidade = u?.unidade ?? list[0] ?? null;
-      setUnidade(defaultUnidade);
-      setSelectedUnidadeId(defaultUnidade?.id ?? null);
-    } else {
-      setUnidades([]);
-      setUnidade(u.unidade ?? null);
-      setSelectedUnidadeId(u?.unidade?.id ?? null);
-    }
-
+    setRole((u?.role === "ADMIN" ? "ADMIN" : "SUPERVISOR") as "ADMIN" | "SUPERVISOR");
+    setUnidade(u?.unidade ?? null);
     setContextReady(true);
   }
 
   const loadFuncionarios = useCallback(async () => {
     if (!contextReady) return;
-    const query =
-      role === "ADMIN" && selectedUnidadeId
-        ? `?unidade_id=${selectedUnidadeId}`
-        : "";
 
+    const query = role === "ADMIN" && unidade?.id ? `?unidade_id=${unidade.id}` : "";
     const fRes = await fetch(`/api/funcionarios${query}`);
     if (fRes.status === 401) {
       window.location.href = "/login";
       return;
     }
+
     const f = await fRes.json().catch(() => null);
     if (!fRes.ok) {
-      setLoadError(
-        f?.error ?? `Erro ao carregar funcionários (HTTP ${fRes.status})`
-      );
+      setLoadError(f?.error ?? `Erro ao carregar funcionários (HTTP ${fRes.status})`);
       return;
     }
+
     setFuncionarios(Array.isArray(f.funcionarios) ? f.funcionarios : []);
-  }, [contextReady, role, selectedUnidadeId]);
+  }, [contextReady, role, unidade?.id]);
 
   useEffect(() => {
     loadContext().catch(() => null);
@@ -105,28 +87,19 @@ export default function MinhaUnidadePage() {
     loadFuncionarios().catch(() => null);
   }, [loadFuncionarios]);
 
-  useEffect(() => {
-    if (role !== "ADMIN") return;
-    const selected =
-      unidades.find((item) => item.id === selectedUnidadeId) ?? null;
-    if (selected) {
-      setUnidade(selected);
-    }
-  }, [role, selectedUnidadeId, unidades]);
-
   async function onCapture(imageB64: string) {
     setRecognizing(true);
     setPontoResult(null);
     setMatch(null);
+
     try {
       const payload: { image_b64: string; unidade_id?: number } = {
         image_b64: imageB64
       };
+
       if (role === "ADMIN") {
-        if (!selectedUnidadeId) {
-          throw new Error("SELECIONE_UNIDADE");
-        }
-        payload.unidade_id = selectedUnidadeId;
+        if (!unidade?.id) throw new Error("UNIDADE_NAO_CONFIGURADA");
+        payload.unidade_id = unidade.id;
       }
 
       const res = await fetch("/api/face/recognize", {
@@ -148,6 +121,7 @@ export default function MinhaUnidadePage() {
   async function confirmPonto() {
     if (!match?.matched || !match.funcionario_id) return;
     setPontoResult(null);
+
     const res = await fetch("/api/ponto", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -157,15 +131,15 @@ export default function MinhaUnidadePage() {
         device_info: { userAgent: navigator.userAgent }
       })
     });
+
     const data = await res.json().catch(() => null);
     if (!res.ok) {
       setPontoResult(`Erro: ${data?.error ?? `HTTP ${res.status}`}`);
       return;
     }
+
     setPontoResult(
-      `Ponto registrado: ${data.ponto.tipo} em ${new Date(
-        data.ponto.timestamp
-      ).toLocaleString()}`
+      `Ponto registrado: ${data.ponto.tipo} em ${new Date(data.ponto.timestamp).toLocaleString()}`
     );
     await loadFuncionarios().catch(() => null);
   }
@@ -179,49 +153,31 @@ export default function MinhaUnidadePage() {
     <div>
       <section className="hero">
         <div className="containerWide">
-          <div className="row" style={{ justifyContent: "space-between" }}>
+          <div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
             <div>
               <h1 style={{ margin: 0 }}>Minha unidade</h1>
               <div>
-                <small className="muted">Funcao: {roleLabel}</small>
+                <small className="muted">Função: {roleLabel}</small>
               </div>
               <div>
                 <small className="muted">
-                  Unidade responsavel: {unidadeResponsavel}
+                  Unidade responsável: {unidadeResponsavel}
                   {unidade?.id ? ` (id=${unidade.id})` : ""}
                 </small>
               </div>
             </div>
 
             <div className="row">
-              {role === "ADMIN" ? (
-                <select
-                  value={selectedUnidadeId ?? ""}
-                  onChange={(e) => setSelectedUnidadeId(Number(e.target.value) || null)}
-                  style={{ minWidth: 220 }}
-                  aria-label="Selecionar unidade para operacao"
-                >
-                  {unidades.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.nome} (id={item.id})
-                    </option>
-                  ))}
-                </select>
-              ) : null}
               <div className="brandLockup" aria-label="Parceria Bemol e Sodexo">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  className="brandLogo brandLogoBemol"
-                  src="/brand/bemol-logo.svg"
-                  alt="Bemol"
-                />
+                <img className="brandLogo brandLogoBemol" src="/brand/bemol-logo.svg" alt="Bemol" />
                 <span className="brandDivider" aria-hidden="true" />
                 <Image
                   className="brandLogo brandLogoSodexo"
                   src="/brand/sodexo-logo.png"
                   alt="Sodexo"
-                  width={280}
-                  height={42}
+                  width={260}
+                  height={40}
                   priority
                 />
               </div>
@@ -238,7 +194,7 @@ export default function MinhaUnidadePage() {
             <div className="row">
               {role === "ADMIN" ? (
                 <Link className="btnLink secondary" href="/unidade/admin">
-                  Admin: atribuicoes
+                  Admin: atribuições
                 </Link>
               ) : null}
               <Link className="btnLink secondary" href="/unidade/cadastrar">
@@ -289,6 +245,7 @@ export default function MinhaUnidadePage() {
               <div className="spacer" />
             </>
           ) : null}
+
           {recognizing ? (
             <p>Reconhecendo...</p>
           ) : match ? (
@@ -296,20 +253,19 @@ export default function MinhaUnidadePage() {
               <>
                 <p>
                   Match: <b>{match.nome ?? matchedFuncionario?.nome ?? "?"}</b>{" "}
-                  <small className="muted">
-                    (score={match.score?.toFixed(3) ?? "n/a"})
-                  </small>
+                  <small className="muted">(score={match.score?.toFixed(3) ?? "n/a"})</small>
                 </p>
                 <button onClick={confirmPonto}>Confirmar ponto</button>
               </>
             ) : (
-              <p>Nenhum match acima do threshold.</p>
+              <p>Nenhum match acima do limiar.</p>
             )
           ) : (
             <p>
               <small className="muted">Abra a câmera e capture um frame.</small>
             </p>
           )}
+
           {pontoResult ? (
             <>
               <div className="spacer" />
