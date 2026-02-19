@@ -36,6 +36,11 @@ export async function POST(req: Request) {
 
   return sql
     .begin(async (tx: any) => {
+      // Serialize writes per funcionario to avoid race conditions in toggle logic.
+      await (tx`SELECT pg_advisory_xact_lock(${funcionarioId})` as unknown as Promise<
+        unknown
+      >);
+
       const funcionarios = isAdmin
         ? await (tx`
             SELECT id, unidade_id FROM funcionario WHERE id = ${funcionarioId} LIMIT 1
@@ -59,7 +64,6 @@ export async function POST(req: Request) {
         WHERE funcionario_id = ${funcionarioId}
         ORDER BY timestamp DESC
         LIMIT 1
-        FOR UPDATE
       ` as unknown as Promise<{ tipo: PontoTipo }[]>);
       const lastTipo = last[0]?.tipo ?? null;
 
@@ -95,6 +99,7 @@ export async function POST(req: Request) {
     })
     .catch((err) => {
       const msg = err instanceof Error ? err.message : "UNKNOWN";
-      return NextResponse.json({ error: msg }, { status: 500 });
+      console.error("[api/ponto][POST] PONTO_WRITE_FAILED", msg);
+      return NextResponse.json({ error: "PONTO_WRITE_FAILED" }, { status: 500 });
     });
 }

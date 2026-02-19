@@ -5,6 +5,9 @@ import { isAdminSession, requireAuth } from "@/lib/rbac";
 export const runtime = "nodejs";
 export const preferredRegion = "gru1";
 export const maxDuration = 60;
+const MIN_IMAGE_B64_LEN = 100;
+const MAX_IMAGE_B64_LEN = 8_000_000;
+const MAX_ENROLL_IMAGES = 10;
 
 function requiredEnv(name: string): string {
   const value = process.env[name];
@@ -29,6 +32,19 @@ export async function POST(req: Request) {
   }
   if (!Array.isArray(images) || images.length < 1) {
     return NextResponse.json({ error: "INVALID_IMAGES" }, { status: 400 });
+  }
+  if (images.length > MAX_ENROLL_IMAGES) {
+    return NextResponse.json({ error: "TOO_MANY_IMAGES" }, { status: 413 });
+  }
+  if (
+    images.some(
+      (image) =>
+        typeof image !== "string" ||
+        image.length < MIN_IMAGE_B64_LEN ||
+        image.length > MAX_IMAGE_B64_LEN
+    )
+  ) {
+    return NextResponse.json({ error: "INVALID_IMAGE_PAYLOAD" }, { status: 400 });
   }
 
   const sql = getSql();

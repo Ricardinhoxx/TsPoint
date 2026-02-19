@@ -1,14 +1,18 @@
-"use client";
+﻿"use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
 
 export default function LoginPage() {
   const router = useRouter();
+  const hasProcessedSupabaseSession = useRef(false);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingMicrosoft, setLoadingMicrosoft] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -18,7 +22,7 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ provider: "LOCAL", email, password })
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
@@ -32,6 +36,64 @@ export default function LoginPage() {
     }
   }
 
+  async function onMicrosoftLogin() {
+    setLoadingMicrosoft(true);
+    setError(null);
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const redirectTo = `${window.location.origin}/login`;
+      const { error: signInError } = await supabase.auth.signInWithOAuth({
+        provider: "azure",
+        options: { redirectTo }
+      });
+      if (signInError) throw signInError;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao iniciar login Microsoft");
+      setLoadingMicrosoft(false);
+    }
+  }
+
+  useEffect(() => {
+    if (hasProcessedSupabaseSession.current) return;
+    hasProcessedSupabaseSession.current = true;
+
+    async function finalizeSupabaseLogin() {
+      try {
+        const supabase = getSupabaseBrowserClient();
+        const { data, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError || !data.session?.access_token) return;
+
+        setLoadingMicrosoft(true);
+        const accessToken = data.session.access_token;
+        const userEmail = data.session.user?.email ?? "";
+
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            provider: "SUPABASE_AZURE",
+            access_token: accessToken,
+            email: userEmail
+          })
+        });
+
+        if (!res.ok) {
+          const body = await res.json().catch(() => null);
+          throw new Error(body?.error ?? `HTTP ${res.status}`);
+        }
+
+        await supabase.auth.signOut();
+        router.push("/unidade");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Falha no login Microsoft");
+      } finally {
+        setLoadingMicrosoft(false);
+      }
+    }
+
+    void finalizeSupabaseLogin();
+  }, [router]);
+
   return (
     <div className="authPage">
       <div className="container">
@@ -39,11 +101,19 @@ export default function LoginPage() {
           <h1>Login</h1>
           <p>
             <small className="muted">
-              MVP: autenticação por email/senha (tabela <code>supervisor</code>).
+              Login local por email/senha ou Microsoft via Supabase + Azure Entra ID.
             </small>
           </p>
+
+          <div className="row">
+            <button type="button" onClick={onMicrosoftLogin} disabled={loading || loadingMicrosoft}>
+              {loadingMicrosoft ? "Conectando Microsoft..." : "Entrar com Microsoft"}
+            </button>
+          </div>
+
+          <div className="spacer" />
+
           <form onSubmit={onSubmit}>
-            <div className="spacer" />
             <label>Email</label>
             <input
               value={email}
@@ -62,8 +132,8 @@ export default function LoginPage() {
             />
             <div className="spacer" />
             <div className="row">
-              <button type="submit" disabled={loading}>
-                {loading ? "Entrando..." : "Entrar"}
+              <button type="submit" disabled={loading || loadingMicrosoft}>
+                {loading ? "Entrando..." : "Entrar com email"}
               </button>
             </div>
             {error ? (
