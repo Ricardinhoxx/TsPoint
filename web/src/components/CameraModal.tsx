@@ -94,6 +94,12 @@ export default function CameraModal({
         subtitle: "Foto frontal, boa iluminacao."
       };
 
+  const cardToneClass = (() => {
+    if (recognizing || busy) return "faceCard--busy";
+    if (!match) return "faceCard--neutral";
+    return match.matched ? "faceCard--ok" : "faceCard--bad";
+  })();
+
   const stageStatusClass = (() => {
     if (!faceBox) return "videoStage--noface";
     if (recognizing || busy) return "videoStage--busy";
@@ -139,7 +145,7 @@ export default function CameraModal({
 
           {faceBox ? (
             <div
-              className="faceCard"
+              className={["faceCard", cardToneClass].join(" ")}
               style={{
                 left: `${cardLeftPct}%`,
                 top: `${faceBox.topPct}%`,
