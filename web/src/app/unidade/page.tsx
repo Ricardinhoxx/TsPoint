@@ -30,6 +30,8 @@ export default function MinhaUnidadePage() {
     score?: number;
   } | null>(null);
   const [pontoResult, setPontoResult] = useState<string | null>(null);
+  const roleLabel = role === "ADMIN" ? "Administrador" : "Supervisor";
+  const unidadeResponsavel = unidade?.nome ?? (role === "ADMIN" ? "Todas as unidades" : "Nao definida");
 
   const matchedFuncionario = useMemo(() => {
     if (!match?.matched || !match.funcionario_id) return null;
@@ -128,9 +130,15 @@ export default function MinhaUnidadePage() {
           <div className="row" style={{ justifyContent: "space-between" }}>
             <div>
               <h1 style={{ margin: 0 }}>Minha unidade</h1>
-              <small className="muted">
-                {unidade ? `${unidade.nome} (id=${unidade.id})` : "Carregando..."}
-              </small>
+              <div>
+                <small className="muted">Funcao: {roleLabel}</small>
+              </div>
+              <div>
+                <small className="muted">
+                  Unidade responsavel: {unidadeResponsavel}
+                  {unidade?.id ? ` (id=${unidade.id})` : ""}
+                </small>
+              </div>
             </div>
 
             <div className="row">
