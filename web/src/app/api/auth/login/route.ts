@@ -1,5 +1,6 @@
 ﻿import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { randomUUID } from "crypto";
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
 import { getSql } from "@/lib/db";
 import { setSession } from "@/lib/auth";
@@ -11,12 +12,21 @@ const MAX_ATTEMPTS = 10;
 const WINDOW_SECONDS = Math.ceil(WINDOW_MS / 1000);
 const AZURE_PROVIDER = "AZURE_ENTRA";
 const MSFT_OPENID_BASE = "https://login.microsoftonline.com";
+const OAUTH_PLACEHOLDER_PASSWORD_PREFIX = "oauth-only:";
 
 type LoginProvider = "LOCAL" | "AZURE_ENTRA" | "SUPABASE_AZURE";
 
 type AttemptStatus = {
   limited: boolean;
   retryAfterSec: number;
+};
+
+type SupervisorRow = {
+  id: number;
+  email: string;
+  password_hash: string;
+  unidade_id: number;
+  role: string;
 };
 
 type FallbackAttemptBucket = {
@@ -56,6 +66,17 @@ function normalizeProvider(raw: unknown): LoginProvider {
 
 function normalizeEmail(raw: unknown): string {
   return String(raw ?? "").trim().toLowerCase();
+}
+
+function normalizeRole(raw: unknown): "ADMIN" | "SUPERVISOR" {
+  const role = String(raw ?? "").trim().toUpperCase();
+  return role === "ADMIN" ? "ADMIN" : "SUPERVISOR";
+}
+
+function parsePositiveInt(raw: unknown): number | null {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.trunc(n);
 }
 
 function checkLimitFallback(key: string): AttemptStatus {
@@ -294,6 +315,59 @@ async function resolveSupabaseAzureIdentity(accessToken: string): Promise<string
   return email;
 }
 
+async function resolveDefaultUnidadeId(sql: ReturnType<typeof getSql>): Promise<number | null> {
+  const envUnidadeId = parsePositiveInt(process.env.OAUTH_AUTO_PROVISION_UNIDADE_ID);
+  if (envUnidadeId) {
+    const explicitRows = await (sql<{ id: number }[]>`
+      SELECT id FROM unidade WHERE id = ${envUnidadeId} LIMIT 1
+    ` as unknown as Promise<{ id: number }[]>);
+    return explicitRows[0]?.id ?? null;
+  }
+
+  const firstRows = await (sql<{ id: number }[]>`
+    SELECT id FROM unidade ORDER BY id ASC LIMIT 1
+  ` as unknown as Promise<{ id: number }[]>);
+  return firstRows[0]?.id ?? null;
+}
+
+function isAllowedEmailForAutoProvision(email: string): boolean {
+  const allowedDomain = process.env.OAUTH_AUTO_PROVISION_ALLOWED_DOMAIN?.trim().toLowerCase();
+  if (!allowedDomain) return true;
+  const normalizedDomain = allowedDomain.startsWith("@") ? allowedDomain : `@${allowedDomain}`;
+  return email.endsWith(normalizedDomain);
+}
+
+async function createOAuthSupervisor(sql: ReturnType<typeof getSql>, email: string): Promise<SupervisorRow | null> {
+  if (!isAllowedEmailForAutoProvision(email)) return null;
+
+  const unidadeId = await resolveDefaultUnidadeId(sql);
+  if (!unidadeId) return null;
+
+  const role = normalizeRole(process.env.OAUTH_AUTO_PROVISION_ROLE);
+  const placeholderPassword = `${OAUTH_PLACEHOLDER_PASSWORD_PREFIX}${randomUUID()}`;
+  const passwordHash = await bcrypt.hash(placeholderPassword, 10);
+
+  try {
+    const inserted = await (sql<SupervisorRow[]>`
+      INSERT INTO supervisor (email, password_hash, unidade_id, role)
+      VALUES (${email}, ${passwordHash}, ${unidadeId}, ${role})
+      RETURNING id, email, password_hash, unidade_id, role
+    ` as unknown as Promise<SupervisorRow[]>);
+    return inserted[0] ?? null;
+  } catch (err) {
+    const code = (err as { code?: string } | null)?.code;
+    if (code !== "23505") throw err;
+
+    const existing = await (sql<SupervisorRow[]>`
+      SELECT id, email, password_hash, unidade_id, role
+      FROM supervisor
+      WHERE email = ${email}
+      LIMIT 1
+    ` as unknown as Promise<SupervisorRow[]>);
+    return existing[0] ?? null;
+  }
+}
+
 export async function POST(req: Request) {
   const body = (await req.json().catch(() => null)) as
     | { provider?: string; email?: string; password?: string; id_token?: string; access_token?: string }
@@ -366,26 +440,26 @@ export async function POST(req: Request) {
 
   const sql = getSql();
 
-  const rows = await (sql<{
-    id: number;
-    email: string;
-    password_hash: string;
-    unidade_id: number;
-    role: string;
-  }[]>`SELECT id, email, password_hash, unidade_id, role FROM supervisor WHERE email = ${email} LIMIT 1` as unknown as Promise<
-    {
-      id: number;
-      email: string;
-      password_hash: string;
-      unidade_id: number;
-      role: string;
-    }[]
-  >);
+  const rows = await (sql<SupervisorRow[]>`
+    SELECT id, email, password_hash, unidade_id, role
+    FROM supervisor
+    WHERE email = ${email}
+    LIMIT 1
+  ` as unknown as Promise<SupervisorRow[]>);
 
-  const supervisor = rows[0];
+  let supervisor = rows[0];
   if (!supervisor) {
-    await registerFailure(key);
-    return NextResponse.json({ error: "INVALID_CREDENTIALS" }, { status: 401 });
+    const canAutoProvision = provider !== "LOCAL";
+    if (!canAutoProvision) {
+      await registerFailure(key);
+      return NextResponse.json({ error: "INVALID_CREDENTIALS" }, { status: 401 });
+    }
+
+    supervisor = await createOAuthSupervisor(sql, email);
+    if (!supervisor) {
+      await registerFailure(key);
+      return NextResponse.json({ error: "AUTO_PROVISION_FAILED" }, { status: 403 });
+    }
   }
 
   if (provider === "LOCAL") {
