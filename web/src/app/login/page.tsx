@@ -4,37 +4,30 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
 
+function MicrosoftIcon() {
+  return (
+    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" focusable="false">
+      <rect x="0" y="0" width="7" height="7" fill="#f25022" />
+      <rect x="9" y="0" width="7" height="7" fill="#7fba00" />
+      <rect x="0" y="9" width="7" height="7" fill="#00a4ef" />
+      <rect x="9" y="9" width="7" height="7" fill="#ffb900" />
+    </svg>
+  );
+}
+
+function prettyError(err: unknown): string {
+  const raw = err instanceof Error ? err.message : "Falha ao entrar";
+  if (raw.includes("SUPABASE_CLIENT_NOT_CONFIGURED")) {
+    return "Configuracao ausente: NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY.";
+  }
+  return raw;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const hasProcessedSupabaseSession = useRef(false);
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [loadingMicrosoft, setLoadingMicrosoft] = useState(false);
-
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ provider: "LOCAL", email, password })
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.error ?? `HTTP ${res.status}`);
-      }
-      router.push("/unidade");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao entrar");
-    } finally {
-      setLoading(false);
-    }
-  }
 
   async function onMicrosoftLogin() {
     setLoadingMicrosoft(true);
@@ -48,7 +41,7 @@ export default function LoginPage() {
       });
       if (signInError) throw signInError;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao iniciar login Microsoft");
+      setError(prettyError(err));
       setLoadingMicrosoft(false);
     }
   }
@@ -85,7 +78,7 @@ export default function LoginPage() {
         await supabase.auth.signOut();
         router.push("/unidade");
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Falha no login Microsoft");
+        setError(prettyError(err));
       } finally {
         setLoadingMicrosoft(false);
       }
@@ -100,51 +93,29 @@ export default function LoginPage() {
         <div className="card authCard">
           <h1>Login</h1>
           <p>
-            <small className="muted">
-              Login local por email/senha ou Microsoft via Supabase + Azure Entra ID.
-            </small>
+            <small className="muted">Entre com sua conta Microsoft corporativa.</small>
           </p>
 
           <div className="row">
-            <button type="button" onClick={onMicrosoftLogin} disabled={loading || loadingMicrosoft}>
-              {loadingMicrosoft ? "Conectando Microsoft..." : "Entrar com Microsoft"}
+            <button
+              type="button"
+              onClick={onMicrosoftLogin}
+              disabled={loadingMicrosoft}
+              style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
+            >
+              <MicrosoftIcon />
+              <span>{loadingMicrosoft ? "Conectando..." : "Entrar com Microsoft"}</span>
             </button>
           </div>
 
-          <div className="spacer" />
-
-          <form onSubmit={onSubmit}>
-            <label>Email</label>
-            <input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-              required
-            />
-            <div className="spacer" />
-            <label>Senha</label>
-            <input
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              type="password"
-              autoComplete="current-password"
-              required
-            />
-            <div className="spacer" />
-            <div className="row">
-              <button type="submit" disabled={loading || loadingMicrosoft}>
-                {loading ? "Entrando..." : "Entrar com email"}
-              </button>
-            </div>
-            {error ? (
-              <>
-                <div className="spacer" />
-                <div className="card" style={{ borderColor: "#8a1f1f" }}>
-                  Erro: {error}
-                </div>
-              </>
-            ) : null}
-          </form>
+          {error ? (
+            <>
+              <div className="spacer" />
+              <div className="card" style={{ borderColor: "#8a1f1f" }}>
+                Erro: {error}
+              </div>
+            </>
+          ) : null}
         </div>
       </div>
     </div>
