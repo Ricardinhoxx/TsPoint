@@ -447,7 +447,7 @@ export async function POST(req: Request) {
     LIMIT 1
   ` as unknown as Promise<SupervisorRow[]>);
 
-  let supervisor = rows[0];
+  let supervisor: SupervisorRow | null = rows[0] ?? null;
   if (!supervisor) {
     const canAutoProvision = provider !== "LOCAL";
     if (!canAutoProvision) {
@@ -460,6 +460,11 @@ export async function POST(req: Request) {
       await registerFailure(key);
       return NextResponse.json({ error: "AUTO_PROVISION_FAILED" }, { status: 403 });
     }
+  }
+
+  if (!supervisor) {
+    await registerFailure(key);
+    return NextResponse.json({ error: "INVALID_CREDENTIALS" }, { status: 401 });
   }
 
   if (provider === "LOCAL") {
