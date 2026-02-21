@@ -110,13 +110,18 @@ export default function LoginPage() {
 
           <h1 className="authTitle">Presença do colaborador</h1>
           <p className="authSubtitle">
-            Plataforma de ponto e reconhecimento facial. Entre com sua conta Microsoft corporativa.
+            Plataforma de ponto e reconhecimento facial. <span className="authAccent">Entre</span>{" "}
+            com sua conta Microsoft corporativa.
           </p>
         </section>
 
+        <div className="authStackDivider" aria-hidden="true" />
+
         <section className="card authCard">
-          <h2 className="authCardTitle">Acesso</h2>
-          <p className="authCardSubtitle">Use sua conta corporativa para continuar.</p>
+          <h2 className="authCardTitle">Entrar</h2>
+          <p className="authCardSubtitle">
+            Use sua conta corporativa para <span className="authAccent">acessar</span>.
+          </p>
           <div className="spacer" />
 
           <button

@@ -192,7 +192,7 @@ video {
   margin: 0;
   border-radius: 0;
   border: none !important;
-  box-shadow: 0 24px 56px rgba(15, 23, 42, 0.14);
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.16);
   animation: authFadeSlide 220ms ease-out both;
   animation-delay: 90ms;
   text-align: center;
@@ -202,9 +202,9 @@ video {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(1200px 500px at 10% -20%, rgba(11, 77, 219, 0.14), rgba(11, 77, 219, 0)),
-    radial-gradient(800px 400px at 95% 110%, rgba(16, 185, 129, 0.12), rgba(16, 185, 129, 0)),
-    linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+    radial-gradient(1200px 500px at 10% -20%, rgba(11, 77, 219, 0.18), rgba(11, 77, 219, 0)),
+    radial-gradient(800px 400px at 95% 110%, rgba(16, 185, 129, 0.14), rgba(16, 185, 129, 0)),
+    linear-gradient(180deg, #f5f7fb 0%, #e8edf8 100%);
 }
 
 .authLayout {
@@ -222,11 +222,11 @@ video {
 .authIntro {
   border: none !important;
   border-radius: 0;
-  padding: 28px;
+  padding: 32px 28px;
   background: rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
-  box-shadow: 0 24px 56px rgba(15, 23, 42, 0.14);
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.16);
   animation: authFadeSlide 220ms ease-out both;
   width: 100%;
   max-width: 760px;
@@ -245,14 +245,14 @@ video {
 }
 
 .authTitle {
-  margin: 18px 0 0;
-  font-size: clamp(30px, 4vw, 46px);
+  margin: 22px 0 0;
+  font-size: clamp(28px, 3.4vw, 40px);
   line-height: 1.04;
   letter-spacing: -0.02em;
 }
 
 .authSubtitle {
-  margin: 14px 0 0;
+  margin: 16px 0 0;
   max-width: 46ch;
   color: #334155;
   line-height: 1.55;
@@ -262,15 +262,16 @@ video {
 
 .authCardTitle {
   margin: 0;
-  font-size: 38px;
+  font-size: 44px;
   line-height: 1.05;
   letter-spacing: -0.015em;
 }
 
 .authCardSubtitle {
-  margin: 10px 0 0;
+  margin: 8px 0 0;
   color: #475569;
-  line-height: 1.45;
+  line-height: 1.5;
+  font-size: 24px;
 }
 
 .authMicrosoftBtn {
@@ -287,12 +288,12 @@ video {
 }
 
 .authMicrosoftBtn:hover:not(:disabled) {
-  filter: brightness(1.03);
+  filter: brightness(1.06);
 }
 
 .authMicrosoftBtn:disabled {
   cursor: not-allowed;
-  opacity: 0.9;
+  opacity: 0.82;
 }
 
 .authSpinner {
@@ -315,6 +316,17 @@ video {
   border: none;
   background: #fef2f2;
   color: #991b1b;
+}
+
+.authAccent {
+  color: #0b4ddb;
+  font-weight: 700;
+}
+
+.authStackDivider {
+  width: 56px;
+  height: 2px;
+  background: rgba(11, 77, 219, 0.35);
 }
 
 .authCard small.muted {
