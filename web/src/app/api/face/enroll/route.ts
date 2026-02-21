@@ -9,6 +9,7 @@ const MIN_IMAGE_B64_LEN = 100;
 const MAX_IMAGE_B64_LEN = 8_000_000;
 const MIN_ENROLL_IMAGES = 3;
 const MAX_ENROLL_IMAGES = 8;
+const MAX_ENROLL_IMAGES_TO_PROCESS = 5;
 
 type AppSession = {
   supervisor: {
@@ -21,6 +22,28 @@ function requiredEnv(name: string): string {
   const value = process.env[name];
   if (!value) throw new Error(`Missing env: ${name}`);
   return value;
+}
+
+function optimizeEnrollImages(images: string[], maxToSend = MAX_ENROLL_IMAGES_TO_PROCESS) {
+  const unique = Array.from(new Set(images.filter((img) => typeof img === "string" && img.length > 0)));
+  if (unique.length <= maxToSend) return unique;
+
+  const selected: string[] = [];
+  const lastIndex = unique.length - 1;
+  for (let i = 0; i < maxToSend; i += 1) {
+    const idx = Math.round((i * lastIndex) / (maxToSend - 1));
+    const candidate = unique[idx];
+    if (candidate && !selected.includes(candidate)) selected.push(candidate);
+  }
+
+  if (selected.length < maxToSend) {
+    for (const img of unique) {
+      if (!selected.includes(img)) selected.push(img);
+      if (selected.length >= maxToSend) break;
+    }
+  }
+
+  return selected;
 }
 
 async function canAccessFuncionario(funcionarioId: number, session: AppSession): Promise<boolean> {
@@ -107,6 +130,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "FUNCIONARIO_FORBIDDEN" }, { status: 403 });
   }
 
+  const optimizedImages = optimizeEnrollImages(images);
+  if (optimizedImages.length < MIN_ENROLL_IMAGES) {
+    return NextResponse.json({ error: "TOO_FEW_IMAGES" }, { status: 400 });
+  }
+
   const faceApiUrl = requiredEnv("FACE_API_URL").replace(/\/$/, "");
   const secret = requiredEnv("FACE_API_SECRET");
 
@@ -118,7 +146,7 @@ export async function POST(req: Request) {
         "content-type": "application/json",
         "x-internal-secret": secret
       },
-      body: JSON.stringify({ funcionario_id: funcionarioId, images_b64: images }),
+      body: JSON.stringify({ funcionario_id: funcionarioId, images_b64: optimizedImages }),
       signal: AbortSignal.timeout(55000)
     });
   } catch (err) {
@@ -138,5 +166,9 @@ export async function POST(req: Request) {
       { status: 502 }
     );
   }
-  return NextResponse.json(data);
+  return NextResponse.json({
+    ...data,
+    processed_images: optimizedImages.length,
+    received_images: images.length
+  });
 }

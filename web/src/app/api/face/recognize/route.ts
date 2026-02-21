@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSql } from "@/lib/db";
 import { isAdminSession, requireAuth } from "@/lib/rbac";
+import { getTabletSession } from "@/lib/tabletAuth";
 
 export const runtime = "nodejs";
 export const preferredRegion = "gru1";
@@ -16,7 +17,10 @@ function requiredEnv(name: string): string {
 
 export async function POST(req: Request) {
   const auth = await requireAuth();
-  if (!auth.ok) {
+  const tabletSession = await getTabletSession();
+  const useTabletContext = Boolean(tabletSession?.tablet);
+
+  if (!auth.ok && !useTabletContext) {
     return NextResponse.json({ error: auth.error }, { status: 401 });
   }
 
@@ -31,8 +35,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "IMAGE_TOO_LARGE" }, { status: 413 });
   }
 
-  const isAdmin = isAdminSession(auth.session);
-  const unidadeId = isAdmin ? null : auth.session.supervisor.unidade_id;
+  const isAdmin = !useTabletContext && auth.ok && isAdminSession(auth.session);
+  const unidadeId = useTabletContext
+    ? (tabletSession?.tablet.unidade_id ?? null)
+    : isAdmin
+      ? null
+      : auth.ok
+        ? auth.session.supervisor.unidade_id
+        : null;
 
   const faceApiUrl = requiredEnv("FACE_API_URL").replace(/\/$/, "");
   const secret = requiredEnv("FACE_API_SECRET");

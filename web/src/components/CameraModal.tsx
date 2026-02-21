@@ -19,7 +19,8 @@ export default function CameraModal({
   recognizing,
   match,
   actionResult,
-  role
+  role,
+  hideCloseButton
 }: {
   onClose: () => void;
   onCapture: (imageB64: string) => Promise<void> | void;
@@ -28,6 +29,7 @@ export default function CameraModal({
   match?: Match | null;
   actionResult?: string | null;
   role: "ADMIN" | "SUPERVISOR";
+  hideCloseButton?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -143,9 +145,11 @@ export default function CameraModal({
       <div className="modal">
         <div className="row" style={{ justifyContent: "space-between" }}>
           <h2>Camera</h2>
-          <button className="secondary" onClick={onClose}>
-            Fechar
-          </button>
+          {hideCloseButton ? null : (
+            <button className="secondary" onClick={onClose}>
+              Fechar
+            </button>
+          )}
         </div>
         <div className="spacer" />
         {error ? (

@@ -58,6 +58,28 @@ function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function optimizeEnrollImages(imagesB64: string[], maxToSend = 5) {
+  const unique = Array.from(new Set(imagesB64.filter((img) => typeof img === "string" && img.length > 0)));
+  if (unique.length <= maxToSend) return unique;
+
+  const selected: string[] = [];
+  const lastIndex = unique.length - 1;
+  for (let i = 0; i < maxToSend; i += 1) {
+    const idx = Math.round((i * lastIndex) / (maxToSend - 1));
+    const candidate = unique[idx];
+    if (candidate && !selected.includes(candidate)) selected.push(candidate);
+  }
+
+  if (selected.length < maxToSend) {
+    for (const img of unique) {
+      if (!selected.includes(img)) selected.push(img);
+      if (selected.length >= maxToSend) break;
+    }
+  }
+
+  return selected;
+}
+
 export default function CadastrarColaboradorPage() {
   const [role, setRole] = useState<Role>("SUPERVISOR");
   const [unidade, setUnidade] = useState<Unidade | null>(null);
@@ -146,7 +168,10 @@ export default function CadastrarColaboradorPage() {
     if (!created?.id) return;
     setError(null);
     setEnrollResult(null);
-    setProcessStatus("Etapa 2/2 em andamento: cadastrando base facial...");
+    const optimizedImages = optimizeEnrollImages(imagesB64, 5);
+    setProcessStatus(
+      `Etapa 2/2 em andamento: cadastrando base facial (${optimizedImages.length} fotos processadas).`
+    );
     const funcionarioId = created.id;
 
     const checkStatus = async () => {
@@ -166,7 +191,7 @@ export default function CadastrarColaboradorPage() {
     const res = await fetch("/api/face/enroll", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ funcionario_id: funcionarioId, images_b64: imagesB64 })
+      body: JSON.stringify({ funcionario_id: funcionarioId, images_b64: optimizedImages })
     });
     const data = await res.json().catch(() => null);
     if (!res.ok) {
@@ -188,7 +213,7 @@ export default function CadastrarColaboradorPage() {
       }
       throw new Error(code);
     }
-    setEnrollResult(`Base facial cadastrada (${data.inserted ?? "?"} imagens).`);
+    setEnrollResult(`Base facial cadastrada (${data.inserted ?? optimizedImages.length} imagens).`);
     setProcessStatus("Processo finalizado: colaborador e base facial cadastrados com sucesso.");
   }
 

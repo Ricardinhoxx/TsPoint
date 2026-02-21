@@ -9,6 +9,8 @@ type Props = {
 };
 
 type Captured = { b64: string; dataUrl: string };
+const CAPTURE_WIDTH = 512;
+const CAPTURE_JPEG_QUALITY = 0.75;
 
 export default function FaceEnrollModal({ onClose, onEnroll }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -42,10 +44,14 @@ export default function FaceEnrollModal({ onClose, onEnroll }: Props) {
   function captureOne() {
     if (!videoRef.current) return;
     setError(null);
+    if (!faceBox) {
+      setError("Centralize o rosto no enquadramento antes de capturar.");
+      return;
+    }
     try {
       const video = videoRef.current;
       const canvas = document.createElement("canvas");
-      const width = 640;
+      const width = CAPTURE_WIDTH;
       const scale = width / (video.videoWidth || width);
       const height = Math.round((video.videoHeight || width) * scale);
       canvas.width = width;
@@ -53,10 +59,11 @@ export default function FaceEnrollModal({ onClose, onEnroll }: Props) {
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("Canvas indisponivel");
       ctx.drawImage(video, 0, 0, width, height);
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+      const dataUrl = canvas.toDataURL("image/jpeg", CAPTURE_JPEG_QUALITY);
       const b64 = dataUrl.split(",")[1] ?? "";
       if (!b64) throw new Error("Falha ao capturar frame");
       setCaptured((prev) => {
+        if (prev.some((p) => p.b64 === b64)) return prev;
         const next = [...prev, { b64, dataUrl }];
         return next.slice(0, 8);
       });

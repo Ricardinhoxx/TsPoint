@@ -6,6 +6,17 @@ import { useEffect, useMemo, useState } from "react";
 type Unidade = { id: number; nome: string };
 type Supervisor = { id: number; email: string; role: "ADMIN" | "SUPERVISOR"; unidade_id: number };
 type Funcionario = { id: number; nome: string; status: string; unidade_id: number };
+type TabletAccess = {
+  id: number;
+  unidade_id: number;
+  unidade_nome: string;
+  nome_dispositivo: string;
+  token_hint: string;
+  ativo: boolean;
+  expires_at: string | null;
+  last_used_at: string | null;
+  created_at: string;
+};
 
 type Pagination = {
   page: number;
@@ -35,6 +46,12 @@ export default function AdminAssignmentsPage() {
   const [creatingUnidade, setCreatingUnidade] = useState(false);
   const [deleteUnidadeId, setDeleteUnidadeId] = useState<number | null>(null);
   const [deletingUnidade, setDeletingUnidade] = useState(false);
+  const [tabletAccess, setTabletAccess] = useState<TabletAccess[]>([]);
+  const [tabletUnidadeId, setTabletUnidadeId] = useState<number | null>(null);
+  const [tabletDeviceName, setTabletDeviceName] = useState("Tablet principal");
+  const [tabletExpiresAt, setTabletExpiresAt] = useState("");
+  const [creatingTabletAccess, setCreatingTabletAccess] = useState(false);
+  const [revokingTabletAccessId, setRevokingTabletAccessId] = useState<number | null>(null);
 
   const unidadeMap = useMemo(() => {
     return new Map(unidades.map((u) => [u.id, u.nome]));
@@ -72,6 +89,17 @@ export default function AdminAssignmentsPage() {
       setPagination(
         data?.pagination ?? { page: 1, page_size: pageSize, total: loadedFuncionarios.length, total_pages: 1 }
       );
+      const initialTabletUnidadeId =
+        (opts?.unidadeId && opts.unidadeId !== "ALL" ? Number(opts.unidadeId) : null) ??
+        loadedUnidades[0]?.id ??
+        null;
+      setTabletUnidadeId((prev) => prev ?? initialTabletUnidadeId);
+
+      const tRes = await fetch("/api/admin/tablet-access");
+      const tData = await tRes.json().catch(() => null);
+      if (tRes.ok) {
+        setTabletAccess(Array.isArray(tData?.tablet_access) ? (tData.tablet_access as TabletAccess[]) : []);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao carregar");
     } finally {
@@ -240,6 +268,65 @@ export default function AdminAssignmentsPage() {
     }
   }
 
+  async function createTabletAccess() {
+    if (!tabletUnidadeId) {
+      setError("Selecione uma loja para gerar o link do tablet.");
+      return;
+    }
+
+    setCreatingTabletAccess(true);
+    setError(null);
+    setStatusMsg(null);
+    try {
+      const res = await fetch("/api/admin/tablet-access", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          unidade_id: tabletUnidadeId,
+          nome_dispositivo: tabletDeviceName.trim() || "Tablet",
+          expires_at: tabletExpiresAt.trim() || null,
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
+
+      if (data?.link && typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(String(data.link));
+      }
+
+      setStatusMsg(
+        `Link de tablet criado${data?.link ? " e copiado para a area de transferencia" : ""}: ${data?.link ?? ""}`
+      );
+      setTabletDeviceName("Tablet principal");
+      setTabletExpiresAt("");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Falha ao criar acesso de tablet");
+    } finally {
+      setCreatingTabletAccess(false);
+    }
+  }
+
+  async function revokeTabletAccess(id: number) {
+    const confirm = window.confirm("Deseja desativar este link de tablet?");
+    if (!confirm) return;
+
+    setRevokingTabletAccessId(id);
+    setError(null);
+    setStatusMsg(null);
+    try {
+      const res = await fetch(`/api/admin/tablet-access?id=${id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
+      setStatusMsg("Acesso de tablet desativado com sucesso.");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Falha ao desativar acesso de tablet");
+    } finally {
+      setRevokingTabletAccessId(null);
+    }
+  }
+
   return (
     <div className="containerWide">
       <div className="row" style={{ justifyContent: "space-between" }}>
@@ -269,6 +356,89 @@ export default function AdminAssignmentsPage() {
           </div>
         </>
       ) : null}
+
+      <div className="spacer" />
+
+      <div className="card">
+        <h2 style={{ marginTop: 0 }}>Links de tablet por loja</h2>
+        <div className="row" style={{ alignItems: "flex-end", flexWrap: "wrap" }}>
+          <div style={{ minWidth: 260, flex: 1 }}>
+            <label>Loja</label>
+            <select
+              value={tabletUnidadeId ? String(tabletUnidadeId) : ""}
+              onChange={(e) => setTabletUnidadeId(e.target.value ? Number(e.target.value) : null)}
+            >
+              <option value="">Selecione...</option>
+              {unidades.map((u) => (
+                <option key={u.id} value={String(u.id)}>
+                  {u.nome} (id={u.id})
+                </option>
+              ))}
+            </select>
+          </div>
+          <div style={{ minWidth: 220, flex: 1 }}>
+            <label>Dispositivo</label>
+            <input
+              value={tabletDeviceName}
+              onChange={(e) => setTabletDeviceName(e.target.value)}
+              placeholder="Ex: Tablet caixa 1"
+            />
+          </div>
+          <div style={{ minWidth: 220, flex: 1 }}>
+            <label>Expira em (opcional)</label>
+            <input
+              type="datetime-local"
+              value={tabletExpiresAt}
+              onChange={(e) => setTabletExpiresAt(e.target.value)}
+            />
+          </div>
+          <button onClick={createTabletAccess} disabled={creatingTabletAccess}>
+            {creatingTabletAccess ? "Gerando..." : "Gerar link do tablet"}
+          </button>
+        </div>
+
+        <div className="spacer" />
+        <div className="tableShell">
+          <table>
+            <thead>
+              <tr>
+                <th>Loja</th>
+                <th>Dispositivo</th>
+                <th>Token</th>
+                <th>Status</th>
+                <th>Último uso</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tabletAccess.length === 0 ? (
+                <tr>
+                  <td colSpan={6}>Nenhum link de tablet criado.</td>
+                </tr>
+              ) : (
+                tabletAccess.map((ta) => (
+                  <tr key={ta.id}>
+                    <td>{ta.unidade_nome}</td>
+                    <td>{ta.nome_dispositivo}</td>
+                    <td>{ta.token_hint}</td>
+                    <td>{ta.ativo ? "ATIVO" : "INATIVO"}</td>
+                    <td>{ta.last_used_at ? new Date(ta.last_used_at).toLocaleString() : "Nunca usado"}</td>
+                    <td>
+                      <button
+                        className="secondary"
+                        onClick={() => revokeTabletAccess(ta.id)}
+                        disabled={!ta.ativo || revokingTabletAccessId === ta.id}
+                      >
+                        {revokingTabletAccessId === ta.id ? "Desativando..." : "Desativar"}
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       <div className="spacer" />
 

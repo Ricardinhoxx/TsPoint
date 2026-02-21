@@ -1,6 +1,7 @@
 ﻿import { NextResponse } from "next/server";
 import { getSql } from "@/lib/db";
 import { isAdminSession, requireAuth } from "@/lib/rbac";
+import { getTabletSession } from "@/lib/tabletAuth";
 
 export const runtime = "nodejs";
 
@@ -13,7 +14,9 @@ function inferNextTipo(lastTipo: PontoTipo | null): PontoTipo {
 
 export async function POST(req: Request) {
   const auth = await requireAuth();
-  if (!auth.ok) {
+  const tabletSession = await getTabletSession();
+  const useTabletContext = Boolean(tabletSession?.tablet);
+  if (!auth.ok && !useTabletContext) {
     return NextResponse.json({ error: auth.error }, { status: 401 });
   }
 
@@ -31,33 +34,54 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "INVALID_FUNCIONARIO" }, { status: 400 });
   }
 
-  const isAdmin = isAdminSession(auth.session);
+  const isAdmin = !useTabletContext && auth.ok && isAdminSession(auth.session);
   const sql = getSql();
 
   return sql
     .begin(async (tx: any) => {
       // Serialize writes per funcionario to avoid race conditions in toggle logic.
-      await (tx`SELECT pg_advisory_xact_lock(${funcionarioId})` as unknown as Promise<
-        unknown
-      >);
+      await (tx`SELECT pg_advisory_xact_lock(${funcionarioId})` as unknown as Promise<unknown>);
 
-      const funcionarios = isAdmin
+      const funcionarios = useTabletContext
         ? await (tx`
-            SELECT id, unidade_id FROM funcionario WHERE id = ${funcionarioId} LIMIT 1
+            SELECT id, unidade_id
+            FROM funcionario
+            WHERE id = ${funcionarioId}
+              AND unidade_id = ${tabletSession?.tablet.unidade_id ?? 0}
+            LIMIT 1
           ` as unknown as Promise<{ id: number; unidade_id: number }[]>)
-        : await (tx`
-            SELECT id, unidade_id FROM funcionario WHERE id = ${funcionarioId} AND unidade_id = ${auth.session.supervisor.unidade_id} LIMIT 1
-          ` as unknown as Promise<{ id: number; unidade_id: number }[]>);
+        : isAdmin
+          ? await (tx`
+              SELECT id, unidade_id FROM funcionario WHERE id = ${funcionarioId} LIMIT 1
+            ` as unknown as Promise<{ id: number; unidade_id: number }[]>)
+          : await (tx`
+              SELECT id, unidade_id
+              FROM funcionario
+              WHERE id = ${funcionarioId} AND unidade_id = ${auth.ok ? auth.session.supervisor.unidade_id : 0}
+              LIMIT 1
+            ` as unknown as Promise<{ id: number; unidade_id: number }[]>);
 
       const funcionario = funcionarios[0];
       if (!funcionario) {
-        return NextResponse.json(
-          { error: "FUNCIONARIO_FORBIDDEN" },
-          { status: 403 }
-        );
+        return NextResponse.json({ error: "FUNCIONARIO_FORBIDDEN" }, { status: 403 });
       }
 
       const unidadeId = funcionario.unidade_id;
+      let operadorId = auth.ok ? auth.session.supervisor.id : null;
+      if (useTabletContext) {
+        const operadores = await (tx<{ id: number }[]>`
+          SELECT id
+          FROM supervisor
+          WHERE unidade_id = ${unidadeId}
+          ORDER BY CASE WHEN UPPER(role) = 'ADMIN' THEN 0 ELSE 1 END, id ASC
+          LIMIT 1
+        ` as unknown as Promise<{ id: number }[]>);
+        operadorId = operadores[0]?.id ?? null;
+      }
+
+      if (!operadorId) {
+        return NextResponse.json({ error: "TABLET_OPERATOR_NOT_FOUND" }, { status: 500 });
+      }
 
       const last = await (tx`
         SELECT tipo::text as tipo FROM ponto
@@ -81,7 +105,7 @@ export async function POST(req: Request) {
           ${tipo}::ponto_tipo,
           ${body?.score ?? null},
           ${body?.device_info ? (body.device_info as any) : null},
-          ${auth.session.supervisor.id}
+          ${operadorId}
         )
         RETURNING id, funcionario_id, unidade_id, tipo::text as tipo, timestamp, score
       ` as unknown as Promise<
