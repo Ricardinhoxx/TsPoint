@@ -33,6 +33,7 @@ export default function MinhaUnidadePage() {
   const [pontoResult, setPontoResult] = useState<string | null>(null);
   const [manageResult, setManageResult] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const [contextReady, setContextReady] = useState(false);
 
   const roleLabel = role === "ADMIN" ? "Administrador" : "Supervisor";
@@ -164,10 +165,9 @@ export default function MinhaUnidadePage() {
 
   async function deleteFuncionario(f: Funcionario) {
     if (role !== "ADMIN") return;
-    const confirmed = window.confirm(`Apagar colaborador ${f.nome} (id=${f.id})?`);
-    if (!confirmed) return;
 
     setManageResult(null);
+    setPendingDeleteId(null);
     setDeletingId(f.id);
     try {
       const res = await fetch(`/api/funcionarios?id=${f.id}`, { method: "DELETE" });
@@ -273,13 +273,32 @@ export default function MinhaUnidadePage() {
                     <td>{f.status}</td>
                     {role === "ADMIN" ? (
                       <td>
-                        <button
-                          className="secondary"
-                          onClick={() => deleteFuncionario(f)}
-                          disabled={deletingId === f.id}
-                        >
-                          {deletingId === f.id ? "Apagando..." : "Apagar"}
-                        </button>
+                        {pendingDeleteId === f.id ? (
+                          <div className="row" style={{ gap: 8 }}>
+                            <small className="muted">Deseja mesmo prosseguir com a exclusão?</small>
+                            <button
+                              className="secondary"
+                              onClick={() => setPendingDeleteId(null)}
+                              disabled={deletingId === f.id}
+                            >
+                              Cancelar
+                            </button>
+                            <button
+                              onClick={() => deleteFuncionario(f)}
+                              disabled={deletingId === f.id}
+                            >
+                              {deletingId === f.id ? "Apagando..." : "Prosseguir exclusão"}
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            className="secondary"
+                            onClick={() => setPendingDeleteId(f.id)}
+                            disabled={Boolean(deletingId)}
+                          >
+                            Apagar
+                          </button>
+                        )}
                       </td>
                     ) : null}
                   </tr>
