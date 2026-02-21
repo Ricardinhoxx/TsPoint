@@ -354,8 +354,10 @@ export default function MinhaUnidadePage() {
           <CameraModal
             onClose={() => setCameraOpen(false)}
             onCapture={onCapture}
+            onConfirmPonto={confirmPonto}
             recognizing={recognizing}
             match={match}
+            actionResult={pontoResult}
           />
         ) : null}
       </div>

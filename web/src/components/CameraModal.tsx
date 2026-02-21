@@ -13,18 +13,23 @@ type Match = {
 export default function CameraModal({
   onClose,
   onCapture,
+  onConfirmPonto,
   recognizing,
-  match
+  match,
+  actionResult
 }: {
   onClose: () => void;
   onCapture: (imageB64: string) => Promise<void> | void;
+  onConfirmPonto?: () => Promise<void> | void;
   recognizing?: boolean;
   match?: Match | null;
+  actionResult?: string | null;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   const { faceBox, engine } = useFaceTracking(videoRef);
 
@@ -71,6 +76,19 @@ export default function CameraModal({
       setError(err instanceof Error ? err.message : "Falha ao capturar");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function confirmPonto() {
+    if (!match?.matched || !match.funcionario_id || !onConfirmPonto) return;
+    setConfirming(true);
+    setError(null);
+    try {
+      await onConfirmPonto();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao confirmar ponto");
+    } finally {
+      setConfirming(false);
     }
   }
 
@@ -168,10 +186,25 @@ export default function CameraModal({
           ) : null}
         </div>
         <div className="spacer" />
+        {actionResult ? (
+          <>
+            <div className="card">{actionResult}</div>
+            <div className="spacer" />
+          </>
+        ) : null}
         <div className="row">
           <button onClick={capture} disabled={busy}>
             {busy ? "Enviando..." : "Capturar 1 frame"}
           </button>
+          {match?.matched && match.funcionario_id ? (
+            <button
+              className="secondary"
+              onClick={confirmPonto}
+              disabled={confirming || recognizing || busy}
+            >
+              {confirming ? "Confirmando..." : "Confirmar ponto"}
+            </button>
+          ) : null}
           <small className="muted">
             Dica: luz frontal + rosto centralizado.
             {engine === "loading" ? <> (Carregando detector...)</> : null}
