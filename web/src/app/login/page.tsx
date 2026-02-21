@@ -1,5 +1,6 @@
-ï»¿"use client";
+"use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
@@ -89,34 +90,58 @@ export default function LoginPage() {
 
   return (
     <div className="authPage">
-      <div className="container">
-        <div className="card authCard">
-          <h1>Login</h1>
-          <p>
-            <small className="muted">Entre com sua conta Microsoft corporativa.</small>
-          </p>
+      <div className="authBg" aria-hidden="true" />
 
-          <div className="row">
-            <button
-              type="button"
-              onClick={onMicrosoftLogin}
-              disabled={loadingMicrosoft}
-              style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
-            >
-              <MicrosoftIcon />
-              <span>{loadingMicrosoft ? "Conectando..." : "Entrar com Microsoft"}</span>
-            </button>
+      <div className="container authLayout">
+        <section className="authIntro">
+          <div className="authBrand">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="brandLogo brandLogoBemol" src="/brand/bemol-logo.svg" alt="Bemol" />
+            <span className="brandDivider" aria-hidden="true" />
+            <Image
+              className="brandLogo brandLogoSodexo"
+              src="/brand/sodexo-logo.png"
+              alt="Sodexo"
+              width={260}
+              height={40}
+              priority
+            />
           </div>
+
+          <h1 className="authTitle">Acesso ao Digitaliza</h1>
+          <p className="authSubtitle">
+            Plataforma de ponto e reconhecimento facial. Entre com sua conta Microsoft corporativa.
+          </p>
+        </section>
+
+        <section className="card authCard">
+          <h2 style={{ marginTop: 0 }}>Entrar</h2>
+          <small className="muted">Use o e-mail corporativo autorizado.</small>
+
+          <div className="spacer" />
+
+          <button
+            type="button"
+            onClick={onMicrosoftLogin}
+            disabled={loadingMicrosoft}
+            className="authMicrosoftBtn"
+          >
+            <MicrosoftIcon />
+            <span>{loadingMicrosoft ? "Conectando..." : "Entrar com Microsoft"}</span>
+          </button>
+
+          <div className="spacer" />
+          <small className="muted authHint">
+            Se não conseguir entrar, confirme se seu usuário está atribuído com função no Admin.
+          </small>
 
           {error ? (
             <>
               <div className="spacer" />
-              <div className="card" style={{ borderColor: "#8a1f1f" }}>
-                Erro: {error}
-              </div>
+              <div className="card authErrorCard">Erro: {error}</div>
             </>
           ) : null}
-        </div>
+        </section>
       </div>
     </div>
   );
