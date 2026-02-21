@@ -7,6 +7,7 @@ import FaceEnrollModal from "@/components/FaceEnrollModal";
 type LocalTipo = "LOJA" | "ESCRITORIO" | "CD";
 
 type Unidade = { id: number; nome: string };
+type Role = "ADMIN" | "SUPERVISOR";
 
 type Funcionario = {
   id: number;
@@ -17,8 +18,47 @@ type Funcionario = {
   status: string;
 };
 
+function friendlyErrorMessage(raw: unknown): string {
+  const code = String(raw ?? "").trim().toUpperCase();
+  switch (code) {
+    case "INVALID_NOME":
+      return "Nome inválido. Informe pelo menos 2 caracteres.";
+    case "INVALID_TURNO":
+      return "Turno inválido. Selecione 1, 2 ou 3.";
+    case "INVALID_LOCAL_TIPO":
+      return "Local inválido. Selecione Loja, Escritório ou CD.";
+    case "INVALID_UNIDADE":
+      return "Unidade inválida. Selecione uma unidade válida.";
+    case "DUPLICATE_KEY":
+      return "Já existe um cadastro com esses dados.";
+    case "INVALID_FUNCIONARIO":
+      return "Colaborador inválido para cadastro facial.";
+    case "INVALID_IMAGES":
+      return "Nenhuma imagem recebida. Capture as fotos e tente novamente.";
+    case "TOO_FEW_IMAGES":
+      return "Envie pelo menos 3 fotos para cadastrar a base facial.";
+    case "TOO_MANY_IMAGES":
+      return "Envie no máximo 8 fotos para cadastrar a base facial.";
+    case "INVALID_IMAGE_PAYLOAD":
+      return "Uma ou mais fotos estão inválidas. Capture novamente.";
+    case "FUNCIONARIO_FORBIDDEN":
+      return "Você não tem permissão para cadastrar base facial deste colaborador.";
+    case "FACE_API_TIMEOUT":
+      return "Tempo limite no serviço de reconhecimento facial. Tente novamente.";
+    case "FACE_API_UNREACHABLE":
+      return "Serviço facial indisponível no momento. Tente novamente.";
+    case "UNAUTHENTICATED":
+      return "Sessão expirada. Faça login novamente.";
+    default:
+      return code || "Falha ao processar a solicitação.";
+  }
+}
+
 export default function CadastrarColaboradorPage() {
+  const [role, setRole] = useState<Role>("SUPERVISOR");
   const [unidade, setUnidade] = useState<Unidade | null>(null);
+  const [unidades, setUnidades] = useState<Unidade[]>([]);
+  const [selectedUnidadeId, setSelectedUnidadeId] = useState<number | null>(null);
   const [nome, setNome] = useState("");
   const [turno, setTurno] = useState<1 | 2 | 3>(1);
   const [localTipo, setLocalTipo] = useState<LocalTipo>("LOJA");
@@ -27,6 +67,11 @@ export default function CadastrarColaboradorPage() {
   const [created, setCreated] = useState<Funcionario | null>(null);
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [enrollResult, setEnrollResult] = useState<string | null>(null);
+  const [processStatus, setProcessStatus] = useState<string | null>(null);
+  const selectedUnidade =
+    role === "ADMIN"
+      ? (unidades.find((u) => u.id === selectedUnidadeId) ?? null)
+      : unidade;
 
   useEffect(() => {
     async function load() {
@@ -37,16 +82,37 @@ export default function CadastrarColaboradorPage() {
       }
       const u = await uRes.json().catch(() => null);
       if (!uRes.ok) throw new Error(u?.error ?? `HTTP ${uRes.status}`);
-      setUnidade(u.unidade ?? null);
+      const nextRole: Role = u?.role === "ADMIN" ? "ADMIN" : "SUPERVISOR";
+      setRole(nextRole);
+
+      const mainUnidade = (u?.unidade ?? null) as Unidade | null;
+      const listaUnidades = Array.isArray(u?.unidades)
+        ? (u.unidades as Unidade[])
+        : mainUnidade
+          ? [mainUnidade]
+          : [];
+
+      setUnidade(mainUnidade);
+      setUnidades(listaUnidades);
+      setSelectedUnidadeId(mainUnidade?.id ?? listaUnidades[0]?.id ?? null);
     }
     load().catch((e) => setError(e instanceof Error ? e.message : "Erro"));
   }, []);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const targetUnidadeId =
+      role === "ADMIN" ? selectedUnidadeId : (unidade?.id ?? null);
+    if (!targetUnidadeId) {
+      setError("Selecione uma unidade válida.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
+    setCreated(null);
     setEnrollResult(null);
+    setProcessStatus("Etapa 1/2 em andamento: cadastrando colaborador...");
     try {
       const res = await fetch("/api/funcionarios", {
         method: "POST",
@@ -55,14 +121,18 @@ export default function CadastrarColaboradorPage() {
           nome,
           turno,
           local_tipo: localTipo,
-          unidade_id: unidade?.id ?? undefined
+          unidade_id: targetUnidadeId
         })
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
-      setCreated(data.funcionario ?? null);
+      const createdFuncionario = (data?.funcionario ?? null) as Funcionario | null;
+      setCreated(createdFuncionario);
+      setProcessStatus("Etapa 1/2 concluída: colaborador cadastrado. Falta cadastrar a base facial.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao cadastrar");
+      const raw = err instanceof Error ? err.message : "Falha ao cadastrar";
+      setError(friendlyErrorMessage(raw));
+      setProcessStatus("Processo interrompido: falha no cadastro do colaborador.");
     } finally {
       setLoading(false);
     }
@@ -70,7 +140,9 @@ export default function CadastrarColaboradorPage() {
 
   async function onEnroll(imagesB64: string[]) {
     if (!created?.id) return;
+    setError(null);
     setEnrollResult(null);
+    setProcessStatus("Etapa 2/2 em andamento: cadastrando base facial...");
     const res = await fetch("/api/face/enroll", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -81,6 +153,7 @@ export default function CadastrarColaboradorPage() {
       throw new Error(data?.error ?? `HTTP ${res.status}`);
     }
     setEnrollResult(`Base facial cadastrada (${data.inserted ?? "?"} imagens).`);
+    setProcessStatus("Processo finalizado: colaborador e base facial cadastrados com sucesso.");
   }
 
   return (
@@ -89,7 +162,11 @@ export default function CadastrarColaboradorPage() {
         <div>
           <h1 style={{ margin: 0 }}>Cadastrar colaborador</h1>
           <small className="muted">
-            {unidade ? `${unidade.nome} (id=${unidade.id})` : "Carregando unidade..."}
+            {selectedUnidade
+              ? `${selectedUnidade.nome} (id=${selectedUnidade.id})`
+              : role === "ADMIN"
+                ? "Selecione uma unidade"
+                : "Carregando unidade..."}
           </small>
         </div>
         <Link className="btnLink secondary" href="/unidade">
@@ -100,6 +177,15 @@ export default function CadastrarColaboradorPage() {
       <div className="spacer" />
 
       <div className="card">
+        {processStatus ? (
+          <>
+            <div className="card" style={{ borderColor: "#2563eb" }}>
+              Status: {processStatus}
+            </div>
+            <div className="spacer" />
+          </>
+        ) : null}
+
         <form onSubmit={onSubmit}>
           <label>Nome</label>
           <input
@@ -113,6 +199,25 @@ export default function CadastrarColaboradorPage() {
           <div className="spacer" />
 
           <div className="row" style={{ alignItems: "flex-end" }}>
+            {role === "ADMIN" ? (
+              <div style={{ flex: 1 }}>
+                <label>Unidade</label>
+                <select
+                  value={selectedUnidadeId ? String(selectedUnidadeId) : ""}
+                  onChange={(e) => setSelectedUnidadeId(Number(e.target.value))}
+                  required
+                >
+                  <option value="" disabled>
+                    Selecione...
+                  </option>
+                  {unidades.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.nome} (id={u.id})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
             <div style={{ flex: 1 }}>
               <label>Turno</label>
               <select
@@ -189,7 +294,9 @@ export default function CadastrarColaboradorPage() {
               await onEnroll(imagesB64);
               setEnrollOpen(false);
             } catch (e) {
-              setError(e instanceof Error ? e.message : "Falha ao cadastrar base");
+              const raw = e instanceof Error ? e.message : "Falha ao cadastrar base";
+              setError(friendlyErrorMessage(raw));
+              setProcessStatus("Processo interrompido: falha no cadastro da base facial.");
             }
           }}
         />

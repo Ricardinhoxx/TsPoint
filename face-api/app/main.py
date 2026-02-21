@@ -251,17 +251,21 @@ def enroll(payload: EnrollIn, x_internal_secret: str | None = Header(default=Non
 
   db = get_db()
   with db.connect() as conn:
-    with conn.cursor() as cur:
-      cur.execute("SELECT 1 FROM funcionario WHERE id = %s LIMIT 1", (payload.funcionario_id,))
-      if cur.fetchone() is None:
-        raise HTTPException(status_code=404, detail="FUNCIONARIO_NOT_FOUND")
+    with conn.transaction():
+      with conn.cursor() as cur:
+        cur.execute("SELECT 1 FROM funcionario WHERE id = %s LIMIT 1", (payload.funcionario_id,))
+        if cur.fetchone() is None:
+          raise HTTPException(status_code=404, detail="FUNCIONARIO_NOT_FOUND")
 
-      inserted = 0
-      for emb in embeddings:
-        cur.execute(
-          "INSERT INTO face_embedding (funcionario_id, embedding_vector) VALUES (%s, %s)",
-          (payload.funcionario_id, emb),
-        )
-        inserted += 1
+        # Re-enroll replaces existing face base to avoid stale/duplicated vectors.
+        cur.execute("DELETE FROM face_embedding WHERE funcionario_id = %s", (payload.funcionario_id,))
+
+        inserted = 0
+        for emb in embeddings:
+          cur.execute(
+            "INSERT INTO face_embedding (funcionario_id, embedding_vector) VALUES (%s, %s)",
+            (payload.funcionario_id, emb),
+          )
+          inserted += 1
 
   return EnrollOut(ok=True, inserted=inserted)

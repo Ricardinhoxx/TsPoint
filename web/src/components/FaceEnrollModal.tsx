@@ -66,8 +66,8 @@ export default function FaceEnrollModal({ onClose, onEnroll }: Props) {
   }
 
   async function submitEnroll() {
-    if (captured.length < 1) {
-      setError("Capture pelo menos 1 foto.");
+    if (captured.length < 3) {
+      setError("Capture pelo menos 3 fotos.");
       return;
     }
     setBusy(true);
@@ -97,7 +97,7 @@ export default function FaceEnrollModal({ onClose, onEnroll }: Props) {
           </button>
         </div>
         <small className="muted">
-          Capture 3-6 fotos com pequenas variacoes (angulo/luz).{" "}
+          Capture 3-8 fotos com pequenas variacoes (angulo/luz).{" "}
           {engine === "loading" ? <> (Carregando detector...)</> : null}
           {engine === "none" ? <> (Deteccao de rosto indisponivel.)</> : null}
         </small>
@@ -145,7 +145,7 @@ export default function FaceEnrollModal({ onClose, onEnroll }: Props) {
               Limpar
             </button>
           </div>
-          <button onClick={submitEnroll} disabled={busy || captured.length < 1}>
+          <button onClick={submitEnroll} disabled={busy || captured.length < 3}>
             {busy ? "Cadastrando..." : "Salvar base"}
           </button>
         </div>
