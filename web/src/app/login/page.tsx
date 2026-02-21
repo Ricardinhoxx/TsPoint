@@ -110,7 +110,7 @@ export default function LoginPage() {
 
           <h1 className="authTitle">Presença do colaborador</h1>
           <p className="authSubtitle">
-            Plataforma de ponto e reconhecimento facial. <span className="authAccent">Entre</span>{" "}
+            Plataforma de registro de presença e reconhecimento facial. <span className="authAccent">Entre</span>{" "}
             com sua conta Microsoft corporativa.
           </p>
         </section>
