@@ -126,6 +126,7 @@ export default function LoginPage() {
             disabled={loadingMicrosoft}
             className="authMicrosoftBtn"
           >
+            {loadingMicrosoft ? <span className="authSpinner" aria-hidden="true" /> : null}
             <MicrosoftIcon />
             <span>{loadingMicrosoft ? "Conectando..." : "Entrar com Microsoft"}</span>
           </button>

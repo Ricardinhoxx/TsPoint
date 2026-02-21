@@ -180,7 +180,8 @@ video {
 .authPage {
   min-height: 100vh;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  padding: clamp(24px, 8vh, 90px) 0 24px;
   position: relative;
   overflow: hidden;
 }
@@ -210,6 +211,8 @@ video {
   grid-template-columns: 1.1fr 0.9fr;
   gap: 24px;
   align-items: stretch;
+  max-width: 1040px;
+  margin: 0 auto;
 }
 
 .authIntro {
@@ -256,14 +259,30 @@ video {
   padding: 12px 14px;
 }
 
+.authSpinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: authSpin 0.8s linear infinite;
+}
+
 .authHint {
   display: block;
   line-height: 1.5;
+  opacity: 1;
+  color: #475569;
 }
 
 .authErrorCard {
   border-color: #dc2626;
   background: #fef2f2;
+}
+
+.authCard small.muted {
+  opacity: 1;
+  color: #475569;
 }
 
 .hero {
@@ -357,6 +376,12 @@ video {
 
   .authCard {
     max-width: 100%;
+  }
+}
+
+@keyframes authSpin {
+  to {
+    transform: rotate(360deg);
   }
 }
 
