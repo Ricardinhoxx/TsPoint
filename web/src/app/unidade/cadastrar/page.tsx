@@ -44,14 +44,18 @@ function friendlyErrorMessage(raw: unknown): string {
     case "FUNCIONARIO_FORBIDDEN":
       return "Você não tem permissão para cadastrar base facial deste colaborador.";
     case "FACE_API_TIMEOUT":
-      return "Tempo limite no serviço de reconhecimento facial. Tente novamente.";
+      return "Demorou mais que o esperado. Estamos verificando se o cadastro foi concluído.";
     case "FACE_API_UNREACHABLE":
-      return "Serviço facial indisponível no momento. Tente novamente.";
+      return "Serviço facial indisponível. Estamos verificando se o cadastro foi concluído.";
     case "UNAUTHENTICATED":
       return "Sessão expirada. Faça login novamente.";
     default:
       return code || "Falha ao processar a solicitação.";
   }
+}
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export default function CadastrarColaboradorPage() {
@@ -143,14 +147,46 @@ export default function CadastrarColaboradorPage() {
     setError(null);
     setEnrollResult(null);
     setProcessStatus("Etapa 2/2 em andamento: cadastrando base facial...");
+    const funcionarioId = created.id;
+
+    const checkStatus = async () => {
+      const statusRes = await fetch(`/api/face/enroll?funcionario_id=${funcionarioId}`, {
+        cache: "no-store"
+      });
+      const statusData = await statusRes.json().catch(() => null);
+      if (!statusRes.ok) {
+        return { ready: false, inserted: 0 };
+      }
+      return {
+        ready: Boolean(statusData?.ready),
+        inserted: Number(statusData?.inserted ?? 0)
+      };
+    };
+
     const res = await fetch("/api/face/enroll", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ funcionario_id: created.id, images_b64: imagesB64 })
+      body: JSON.stringify({ funcionario_id: funcionarioId, images_b64: imagesB64 })
     });
     const data = await res.json().catch(() => null);
     if (!res.ok) {
-      throw new Error(data?.error ?? `HTTP ${res.status}`);
+      const code = String(data?.error ?? `HTTP ${res.status}`);
+      if (code === "FACE_API_TIMEOUT" || code === "FACE_API_UNREACHABLE") {
+        setProcessStatus("Etapa 2/2 em verificação: aguardando confirmação no servidor...");
+        for (let attempt = 1; attempt <= 12; attempt += 1) {
+          const status = await checkStatus();
+          if (status.ready) {
+            setEnrollResult(`Base facial cadastrada (${status.inserted} imagens).`);
+            setProcessStatus("Processo finalizado: colaborador e base facial cadastrados com sucesso.");
+            return;
+          }
+          setProcessStatus(
+            `Etapa 2/2 em verificação (${attempt}/12): ainda processando no servidor...`
+          );
+          await wait(5000);
+        }
+      }
+      throw new Error(code);
     }
     setEnrollResult(`Base facial cadastrada (${data.inserted ?? "?"} imagens).`);
     setProcessStatus("Processo finalizado: colaborador e base facial cadastrados com sucesso.");
