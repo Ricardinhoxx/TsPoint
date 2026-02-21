@@ -182,3 +182,63 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export async function DELETE(req: Request) {
+  const auth = await requireAuth();
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: 401 });
+  }
+
+  if (!isAdminSession(auth.session)) {
+    return NextResponse.json({ error: "FORBIDDEN_ADMIN_ONLY" }, { status: 403 });
+  }
+
+  try {
+    const { searchParams } = new URL(req.url);
+    const funcionarioId = parsePositiveInt(searchParams.get("id"));
+    if (!funcionarioId) {
+      return NextResponse.json({ error: "INVALID_FUNCIONARIO" }, { status: 400 });
+    }
+
+    const sql = getSql();
+    const deleted = await (sql<
+      {
+        id: number;
+        nome: string;
+      }[]
+    >`
+      DELETE FROM funcionario
+      WHERE id = ${funcionarioId}
+      RETURNING id, nome
+    ` as unknown as Promise<
+      {
+        id: number;
+        nome: string;
+      }[]
+    >);
+
+    if (!deleted[0]) {
+      return NextResponse.json({ error: "FUNCIONARIO_NOT_FOUND" }, { status: 404 });
+    }
+
+    return NextResponse.json({ ok: true, deleted: deleted[0] });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    const code = (err as any)?.code;
+    const details =
+      process.env.NODE_ENV === "production" ? undefined : { code, message };
+    console.error("[api/funcionarios][DELETE]", { code, message });
+
+    if (code === "23503") {
+      return NextResponse.json(
+        { error: "FUNCIONARIO_HAS_PONTO", ...(details ?? {}) },
+        { status: 409 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: "DB_ERROR", ...(details ?? {}) },
+      { status: 500 }
+    );
+  }
+}

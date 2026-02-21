@@ -31,6 +31,8 @@ export default function MinhaUnidadePage() {
     score?: number;
   } | null>(null);
   const [pontoResult, setPontoResult] = useState<string | null>(null);
+  const [manageResult, setManageResult] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [contextReady, setContextReady] = useState(false);
 
   const roleLabel = role === "ADMIN" ? "Administrador" : "Supervisor";
@@ -144,6 +146,43 @@ export default function MinhaUnidadePage() {
     await loadFuncionarios().catch(() => null);
   }
 
+  function deleteErrorMessage(raw: unknown): string {
+    const code = String(raw ?? "").trim().toUpperCase();
+    switch (code) {
+      case "FORBIDDEN_ADMIN_ONLY":
+        return "Apenas administradores podem apagar colaboradores.";
+      case "FUNCIONARIO_HAS_PONTO":
+        return "Não é possível apagar colaborador com pontos registrados.";
+      case "FUNCIONARIO_NOT_FOUND":
+        return "Colaborador não encontrado.";
+      case "INVALID_FUNCIONARIO":
+        return "Colaborador inválido.";
+      default:
+        return code || "Falha ao apagar colaborador.";
+    }
+  }
+
+  async function deleteFuncionario(f: Funcionario) {
+    if (role !== "ADMIN") return;
+    const confirmed = window.confirm(`Apagar colaborador ${f.nome} (id=${f.id})?`);
+    if (!confirmed) return;
+
+    setManageResult(null);
+    setDeletingId(f.id);
+    try {
+      const res = await fetch(`/api/funcionarios?id=${f.id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
+      setManageResult(`Colaborador ${f.nome} apagado com sucesso.`);
+      await loadFuncionarios().catch(() => null);
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : "Falha ao apagar colaborador";
+      setManageResult(`Erro: ${deleteErrorMessage(raw)}`);
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => null);
     window.location.href = "/login";
@@ -208,6 +247,12 @@ export default function MinhaUnidadePage() {
           </div>
 
           <div className="spacer" />
+          {manageResult ? (
+            <>
+              <div className="card">{manageResult}</div>
+              <div className="spacer" />
+            </>
+          ) : null}
           <div className="tableShell">
             <table>
               <thead>
@@ -216,6 +261,7 @@ export default function MinhaUnidadePage() {
                   <th>Turno</th>
                   <th>Local</th>
                   <th>Status</th>
+                  {role === "ADMIN" ? <th>Ações</th> : null}
                 </tr>
               </thead>
               <tbody>
@@ -225,6 +271,17 @@ export default function MinhaUnidadePage() {
                     <td>{f.turno}</td>
                     <td>{f.local_tipo}</td>
                     <td>{f.status}</td>
+                    {role === "ADMIN" ? (
+                      <td>
+                        <button
+                          className="secondary"
+                          onClick={() => deleteFuncionario(f)}
+                          disabled={deletingId === f.id}
+                        >
+                          {deletingId === f.id ? "Apagando..." : "Apagar"}
+                        </button>
+                      </td>
+                    ) : null}
                   </tr>
                 ))}
               </tbody>
