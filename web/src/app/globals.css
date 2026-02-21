@@ -180,8 +180,8 @@ video {
 .authPage {
   min-height: 100vh;
   display: flex;
-  align-items: flex-start;
-  padding: clamp(24px, 8vh, 90px) 0 24px;
+  align-items: center;
+  padding: 24px 0;
   position: relative;
   overflow: hidden;
 }
