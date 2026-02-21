@@ -327,6 +327,32 @@ export default function AdminAssignmentsPage() {
     }
   }
 
+  async function deleteTabletAccess(id: number) {
+    const confirm = window.confirm("Deseja apagar este tablet definitivamente?");
+    if (!confirm) return;
+
+    const token = window.prompt('Digite APAGAR para confirmar a exclusão definitiva:');
+    if ((token ?? "").trim().toUpperCase() !== "APAGAR") {
+      setError("Confirmação inválida. Exclusão cancelada.");
+      return;
+    }
+
+    setRevokingTabletAccessId(id);
+    setError(null);
+    setStatusMsg(null);
+    try {
+      const res = await fetch(`/api/admin/tablet-access?id=${id}&hard=1`, { method: "DELETE" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
+      setStatusMsg("Tablet apagado com sucesso.");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Falha ao apagar tablet");
+    } finally {
+      setRevokingTabletAccessId(null);
+    }
+  }
+
   return (
     <div className="containerWide">
       <div className="row" style={{ justifyContent: "space-between" }}>
@@ -424,13 +450,22 @@ export default function AdminAssignmentsPage() {
                     <td>{ta.ativo ? "ATIVO" : "INATIVO"}</td>
                     <td>{ta.last_used_at ? new Date(ta.last_used_at).toLocaleString() : "Nunca usado"}</td>
                     <td>
-                      <button
-                        className="secondary"
-                        onClick={() => revokeTabletAccess(ta.id)}
-                        disabled={!ta.ativo || revokingTabletAccessId === ta.id}
-                      >
-                        {revokingTabletAccessId === ta.id ? "Desativando..." : "Desativar"}
-                      </button>
+                      <div className="row" style={{ gap: 8 }}>
+                        <button
+                          className="secondary"
+                          onClick={() => revokeTabletAccess(ta.id)}
+                          disabled={!ta.ativo || revokingTabletAccessId === ta.id}
+                        >
+                          {revokingTabletAccessId === ta.id ? "Desativando..." : "Desativar"}
+                        </button>
+                        <button
+                          className="secondary"
+                          onClick={() => deleteTabletAccess(ta.id)}
+                          disabled={revokingTabletAccessId === ta.id}
+                        >
+                          {revokingTabletAccessId === ta.id ? "Apagando..." : "Apagar"}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))

@@ -187,9 +187,33 @@ export async function DELETE(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const id = parsePositiveInt(searchParams.get("id"));
+  const hardDelete = String(searchParams.get("hard") ?? "") === "1";
   if (!id) return NextResponse.json({ error: "INVALID_ID" }, { status: 400 });
 
   const sql = getSql();
+  if (hardDelete) {
+    const deleted = await (sql<
+      {
+        id: number;
+        unidade_id: number;
+        nome_dispositivo: string;
+      }[]
+    >`
+      DELETE FROM tablet_access
+      WHERE id = ${id}
+      RETURNING id, unidade_id, nome_dispositivo
+    ` as unknown as Promise<
+      {
+        id: number;
+        unidade_id: number;
+        nome_dispositivo: string;
+      }[]
+    >);
+
+    if (!deleted[0]) return NextResponse.json({ error: "TABLET_ACCESS_NOT_FOUND" }, { status: 404 });
+    return NextResponse.json({ ok: true, deleted: deleted[0] });
+  }
+
   const updated = await (sql<
     {
       id: number;
