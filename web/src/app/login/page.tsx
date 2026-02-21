@@ -1,4 +1,4 @@
-"use client";
+ï»¿"use client";
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
@@ -132,7 +132,7 @@ export default function LoginPage() {
 
           <div className="spacer" />
           <small className="muted authHint">
-            Se não conseguir entrar, confirme se seu usuário está atribuído com função no Admin.
+            Se nao conseguir entrar, confirme se seu usuario esta atribuido com funcao no Admin.
           </small>
 
           {error ? (
