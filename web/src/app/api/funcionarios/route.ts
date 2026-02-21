@@ -64,7 +64,7 @@ export async function GET(req: Request) {
             GROUP BY funcionario_id
           ) fe ON fe.funcionario_id = f.id
           WHERE f.unidade_id = ${unidadeId}
-          ORDER BY f.nome ASC
+          ORDER BY u.nome ASC, f.nome ASC
         ` as unknown as Promise<
           {
             id: number;
@@ -105,7 +105,7 @@ export async function GET(req: Request) {
             FROM face_embedding
             GROUP BY funcionario_id
           ) fe ON fe.funcionario_id = f.id
-          ORDER BY f.unidade_id ASC, f.nome ASC
+          ORDER BY u.nome ASC, f.nome ASC
         ` as unknown as Promise<
           {
             id: number;

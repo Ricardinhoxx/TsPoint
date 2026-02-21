@@ -279,7 +279,7 @@ export default function MinhaUnidadePage() {
                 <tr>
                   <th>Nome</th>
                   <th>Turno</th>
-                  <th>Loja</th>
+                  <th>Loja (cadastro)</th>
                   <th>Status</th>
                   <th>Base facial</th>
                   {role === "ADMIN" ? <th>Ações</th> : null}
@@ -290,7 +290,12 @@ export default function MinhaUnidadePage() {
                   <tr key={f.id}>
                     <td>{f.nome}</td>
                     <td>{f.turno}</td>
-                    <td>{f.unidade_nome ?? `id=${f.unidade_id}`}</td>
+                    <td>
+                      <span className="storeChip">{f.unidade_nome ?? "Loja não definida"}</span>{" "}
+                      {role === "ADMIN" ? (
+                        <small className="muted">id={f.unidade_id}</small>
+                      ) : null}
+                    </td>
                     <td>{f.status}</td>
                     <td>{(f.face_embeddings ?? 0) > 0 ? `Cadastrada (${f.face_embeddings})` : "Não cadastrada"}</td>
                     {role === "ADMIN" ? (
