@@ -30,6 +30,8 @@ export default function MinhaUnidadePage() {
     funcionario_id?: number;
     nome?: string;
     score?: number;
+    unidade_id?: number | null;
+    unidade_nome?: string | null;
   } | null>(null);
   const [pontoResult, setPontoResult] = useState<string | null>(null);
   const [manageResult, setManageResult] = useState<string | null>(null);
@@ -330,7 +332,10 @@ export default function MinhaUnidadePage() {
               <>
                 <p>
                   Match: <b>{match.nome ?? matchedFuncionario?.nome ?? "?"}</b>{" "}
-                  <small className="muted">(score={match.score?.toFixed(3) ?? "n/a"})</small>
+                  <small className="muted">
+                    (unidade: {match.unidade_nome ?? (match.unidade_id ? `id=${match.unidade_id}` : "n/a")}
+                    {role === "ADMIN" ? ` | score=${match.score?.toFixed(3) ?? "n/a"}` : ""})
+                  </small>
                 </p>
                 <button onClick={confirmPonto}>Confirmar ponto</button>
               </>
@@ -359,6 +364,7 @@ export default function MinhaUnidadePage() {
             recognizing={recognizing}
             match={match}
             actionResult={pontoResult}
+            role={role}
           />
         ) : null}
       </div>

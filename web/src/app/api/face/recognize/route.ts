@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getSql } from "@/lib/db";
 import { isAdminSession, requireAuth } from "@/lib/rbac";
 
 export const runtime = "nodejs";
@@ -67,5 +68,39 @@ export async function POST(req: Request) {
       { status: 502 }
     );
   }
+
+  if (data?.matched && Number.isFinite(Number(data?.funcionario_id))) {
+    try {
+      const sql = getSql();
+      const funcionarioId = Number(data.funcionario_id);
+      const rows = await (sql<
+        {
+          unidade_id: number;
+          unidade_nome: string;
+        }[]
+      >`
+        SELECT f.unidade_id, u.nome AS unidade_nome
+        FROM funcionario f
+        JOIN unidade u ON u.id = f.unidade_id
+        WHERE f.id = ${funcionarioId}
+        LIMIT 1
+      ` as unknown as Promise<
+        {
+          unidade_id: number;
+          unidade_nome: string;
+        }[]
+      >);
+
+      const unidade = rows[0];
+      return NextResponse.json({
+        ...data,
+        unidade_id: unidade?.unidade_id ?? null,
+        unidade_nome: unidade?.unidade_nome ?? null
+      });
+    } catch {
+      return NextResponse.json(data);
+    }
+  }
+
   return NextResponse.json(data);
 }

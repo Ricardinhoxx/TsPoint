@@ -8,6 +8,8 @@ type Match = {
   funcionario_id?: number;
   nome?: string;
   score?: number;
+  unidade_id?: number | null;
+  unidade_nome?: string | null;
 };
 
 export default function CameraModal({
@@ -16,7 +18,8 @@ export default function CameraModal({
   onConfirmPonto,
   recognizing,
   match,
-  actionResult
+  actionResult,
+  role
 }: {
   onClose: () => void;
   onCapture: (imageB64: string) => Promise<void> | void;
@@ -24,6 +27,7 @@ export default function CameraModal({
   recognizing?: boolean;
   match?: Match | null;
   actionResult?: string | null;
+  role: "ADMIN" | "SUPERVISOR";
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -100,11 +104,20 @@ export default function CameraModal({
       : Math.max(2, faceBox.leftPct - 2)
     : 0;
 
+  const unitLabel = match?.unidade_nome
+    ? `Unidade: ${match.unidade_nome}`
+    : match?.unidade_id
+      ? `Unidade id=${match.unidade_id}`
+      : "Unidade não informada";
+
   const cardText = match?.matched
     ? {
         kicker: "Identificacao",
         title: match.nome ?? "Usuario identificado",
-        subtitle: `score=${match.score?.toFixed(3) ?? "n/a"}`
+        subtitle:
+          role === "ADMIN"
+            ? `${unitLabel} | score=${match.score?.toFixed(3) ?? "n/a"}`
+            : unitLabel
       }
     : {
         kicker: "Cadastro facial",
