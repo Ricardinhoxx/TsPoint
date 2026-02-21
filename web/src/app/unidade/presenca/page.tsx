@@ -70,7 +70,16 @@ function fmtDatePt(dateOnly: string) {
 
 function fmtWeekday(dateOnly: string) {
   const d = new Date(`${dateOnly}T00:00:00`);
-  return d.toLocaleDateString("pt-BR", { weekday: "long" }).replace("-feira", "");
+  const weekdays = [
+    "Domingo",
+    "Segunda-feira",
+    "Terça-feira",
+    "Quarta-feira",
+    "Quinta-feira",
+    "Sexta-feira",
+    "Sábado",
+  ];
+  return weekdays[d.getDay()] ?? "";
 }
 
 function statusClass(status: DayStatus) {
