@@ -108,18 +108,23 @@ export default function LoginPage() {
             />
           </div>
 
-          <h1 className="authTitle">Presença colaborador</h1>
+          <h1 className="authTitle">Presença do colaborador</h1>
           <p className="authSubtitle">
             Plataforma de ponto e reconhecimento facial. Entre com sua conta Microsoft corporativa.
           </p>
         </section>
 
         <section className="card authCard">
+          <h2 className="authCardTitle">Acesso</h2>
+          <p className="authCardSubtitle">Use sua conta corporativa para continuar.</p>
+          <div className="spacer" />
+
           <button
             type="button"
             onClick={onMicrosoftLogin}
             disabled={loadingMicrosoft}
             className="authMicrosoftBtn"
+            aria-busy={loadingMicrosoft}
           >
             {loadingMicrosoft ? <span className="authSpinner" aria-hidden="true" /> : null}
             <MicrosoftIcon />
@@ -129,7 +134,9 @@ export default function LoginPage() {
           {error ? (
             <>
               <div className="spacer" />
-              <div className="card authErrorCard">Erro: {error}</div>
+              <div className="card authErrorCard" aria-live="polite">
+                Nao foi possivel autenticar. {error}
+              </div>
             </>
           ) : null}
         </section>

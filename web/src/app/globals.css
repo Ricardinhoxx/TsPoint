@@ -193,6 +193,8 @@ video {
   border-radius: 14px;
   border: none;
   box-shadow: 0 24px 56px rgba(15, 23, 42, 0.14);
+  animation: authFadeSlide 220ms ease-out both;
+  animation-delay: 90ms;
 }
 
 .authBg {
@@ -223,6 +225,7 @@ video {
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   box-shadow: 0 24px 56px rgba(15, 23, 42, 0.14);
+  animation: authFadeSlide 220ms ease-out both;
 }
 
 .authBrand {
@@ -249,6 +252,19 @@ video {
   line-height: 1.55;
 }
 
+.authCardTitle {
+  margin: 0;
+  font-size: 38px;
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+}
+
+.authCardSubtitle {
+  margin: 10px 0 0;
+  color: #475569;
+  line-height: 1.45;
+}
+
 .authMicrosoftBtn {
   width: min(100%, 360px);
   margin: 0 auto;
@@ -259,6 +275,15 @@ video {
   font-weight: 600;
   border-radius: 10px;
   padding: 12px 14px;
+}
+
+.authMicrosoftBtn:hover:not(:disabled) {
+  filter: brightness(1.03);
+}
+
+.authMicrosoftBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.9;
 }
 
 .authSpinner {
@@ -280,6 +305,7 @@ video {
 .authErrorCard {
   border-color: #dc2626;
   background: #fef2f2;
+  color: #991b1b;
 }
 
 .authCard small.muted {
@@ -384,6 +410,17 @@ video {
 @keyframes authSpin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes authFadeSlide {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
