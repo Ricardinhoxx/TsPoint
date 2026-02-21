@@ -120,7 +120,7 @@ export default function LoginPage() {
         <section className="card authCard">
           <h2 className="authCardTitle">Entrar</h2>
           <p className="authCardSubtitle">
-            Use sua conta corporativa para <span className="authAccent">acessar</span>.
+            Use sua conta corporativa para acessar.
           </p>
           <div className="spacer" />
 
