@@ -188,13 +188,14 @@ video {
 
 .authCard {
   width: 100%;
-  max-width: 460px;
+  max-width: 760px;
   margin: 0;
   border-radius: 14px;
   border: none;
   box-shadow: 0 24px 56px rgba(15, 23, 42, 0.14);
   animation: authFadeSlide 220ms ease-out both;
   animation-delay: 90ms;
+  text-align: center;
 }
 
 .authBg {
@@ -210,10 +211,11 @@ video {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  gap: 24px;
-  align-items: stretch;
-  max-width: 1040px;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  align-items: center;
+  justify-items: center;
+  max-width: 760px;
   margin: 0 auto;
 }
 
@@ -226,6 +228,9 @@ video {
   -webkit-backdrop-filter: blur(4px);
   box-shadow: 0 24px 56px rgba(15, 23, 42, 0.14);
   animation: authFadeSlide 220ms ease-out both;
+  width: 100%;
+  max-width: 760px;
+  text-align: center;
 }
 
 .authBrand {
@@ -236,6 +241,7 @@ video {
   border: 1px solid #dbeafe;
   border-radius: 999px;
   padding: 10px 14px;
+  margin: 0 auto;
 }
 
 .authTitle {
@@ -247,9 +253,11 @@ video {
 
 .authSubtitle {
   margin: 14px 0 0;
-  max-width: 42ch;
+  max-width: 46ch;
   color: #334155;
   line-height: 1.55;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .authCardTitle {
