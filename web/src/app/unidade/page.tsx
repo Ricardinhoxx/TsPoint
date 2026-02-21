@@ -96,14 +96,9 @@ export default function MinhaUnidadePage() {
     setMatch(null);
 
     try {
-      const payload: { image_b64: string; unidade_id?: number } = {
+      const payload: { image_b64: string } = {
         image_b64: imageB64
       };
-
-      if (role === "ADMIN") {
-        if (!unidade?.id) throw new Error("UNIDADE_NAO_CONFIGURADA");
-        payload.unidade_id = unidade.id;
-      }
 
       const res = await fetch("/api/face/recognize", {
         method: "POST",

@@ -1,5 +1,5 @@
-﻿import { NextResponse } from "next/server";
-import { isAdminSession, parsePositiveInt, requireAuth } from "@/lib/rbac";
+import { NextResponse } from "next/server";
+import { isAdminSession, requireAuth } from "@/lib/rbac";
 
 export const runtime = "nodejs";
 export const preferredRegion = "gru1";
@@ -31,13 +31,7 @@ export async function POST(req: Request) {
   }
 
   const isAdmin = isAdminSession(auth.session);
-  const unidadeId = isAdmin
-    ? (parsePositiveInt(body?.unidade_id) ?? auth.session.supervisor.unidade_id)
-    : auth.session.supervisor.unidade_id;
-
-  if (!unidadeId) {
-    return NextResponse.json({ error: "INVALID_UNIDADE" }, { status: 400 });
-  }
+  const unidadeId = isAdmin ? null : auth.session.supervisor.unidade_id;
 
   const faceApiUrl = requiredEnv("FACE_API_URL").replace(/\/$/, "");
   const secret = requiredEnv("FACE_API_SECRET");

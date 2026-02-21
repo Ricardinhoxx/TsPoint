@@ -175,7 +175,7 @@ def get_db() -> Db:
 
 
 class RecognizeIn(BaseModel):
-  unidade_id: int = Field(gt=0)
+  unidade_id: int | None = Field(default=None, gt=0)
   image_b64: str = Field(min_length=100)
 
 
@@ -220,11 +220,12 @@ def recognize(payload: RecognizeIn, x_internal_secret: str | None = Header(defau
           (1 - (e.embedding_vector <=> %s))::float4 AS score
         FROM funcionario f
         JOIN face_embedding e ON e.funcionario_id = f.id
-        WHERE f.unidade_id = %s AND f.status = 'ATIVO'
+        WHERE (%s::bigint IS NULL OR f.unidade_id = %s::bigint)
+          AND f.status = 'ATIVO'
         ORDER BY e.embedding_vector <=> %s
         LIMIT 1
         """,
-        (query, payload.unidade_id, query),
+        (query, payload.unidade_id, payload.unidade_id, query),
       )
       row = cur.fetchone()
 
