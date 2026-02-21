@@ -265,3 +265,48 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+
+export async function POST(req: Request) {
+  const auth = await requireAuth();
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: 401 });
+  }
+  if (!isAdminSession(auth.session)) {
+    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  }
+
+  const body = (await req.json().catch(() => null)) as
+    | {
+        nome?: string;
+      }
+    | null;
+
+  const nome = String(body?.nome ?? "").trim();
+  if (nome.length < 2) {
+    return NextResponse.json({ error: "INVALID_UNIDADE_NOME" }, { status: 400 });
+  }
+
+  try {
+    const sql = getSql();
+    const inserted = await (sql<
+      {
+        id: number;
+        nome: string;
+      }[]
+    >`
+      INSERT INTO unidade (nome)
+      VALUES (${nome})
+      RETURNING id, nome
+    ` as unknown as Promise<
+      {
+        id: number;
+        nome: string;
+      }[]
+    >);
+
+    return NextResponse.json({ ok: true, unidade: inserted[0] }, { status: 201 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "UNKNOWN";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}

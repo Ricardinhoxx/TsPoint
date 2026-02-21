@@ -31,6 +31,8 @@ export default function AdminAssignmentsPage() {
   const [unidadeFilter, setUnidadeFilter] = useState<number | "ALL">("ALL");
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
+  const [newUnidadeNome, setNewUnidadeNome] = useState("");
+  const [creatingUnidade, setCreatingUnidade] = useState(false);
 
   const unidadeMap = useMemo(() => {
     return new Map(unidades.map((u) => [u.id, u.nome]));
@@ -151,6 +153,40 @@ export default function AdminAssignmentsPage() {
     }
   }
 
+  async function createUnidade() {
+    const nome = newUnidadeNome.trim();
+    if (nome.length < 2) {
+      setError("Nome da loja deve ter ao menos 2 caracteres.");
+      return;
+    }
+
+    setCreatingUnidade(true);
+    setError(null);
+    setStatusMsg(null);
+    try {
+      const res = await fetch("/api/admin/assignments", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ nome })
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
+
+      const unidade = data?.unidade as Unidade | undefined;
+      setStatusMsg(
+        unidade
+          ? `Loja criada com sucesso: ${unidade.nome} (id=${unidade.id}).`
+          : "Loja criada com sucesso."
+      );
+      setNewUnidadeNome("");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Falha ao criar loja");
+    } finally {
+      setCreatingUnidade(false);
+    }
+  }
+
   return (
     <div className="containerWide">
       <div className="row" style={{ justifyContent: "space-between" }}>
@@ -180,6 +216,25 @@ export default function AdminAssignmentsPage() {
           </div>
         </>
       ) : null}
+
+      <div className="spacer" />
+
+      <div className="card">
+        <h2 style={{ marginTop: 0 }}>Criar loja</h2>
+        <div className="row" style={{ alignItems: "flex-end", flexWrap: "wrap" }}>
+          <div style={{ minWidth: 320, flex: 1 }}>
+            <label>Nome da loja</label>
+            <input
+              value={newUnidadeNome}
+              onChange={(e) => setNewUnidadeNome(e.target.value)}
+              placeholder="Ex: Loja Centro"
+            />
+          </div>
+          <button onClick={createUnidade} disabled={creatingUnidade}>
+            {creatingUnidade ? "Criando..." : "Criar loja"}
+          </button>
+        </div>
+      </div>
 
       <div className="spacer" />
 
