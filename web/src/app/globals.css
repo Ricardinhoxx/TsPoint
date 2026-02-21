@@ -191,7 +191,7 @@ video {
   max-width: 460px;
   margin: 0;
   border-radius: 14px;
-  border-color: #cbd5e1;
+  border: none;
   box-shadow: 0 24px 56px rgba(15, 23, 42, 0.14);
 }
 
@@ -216,12 +216,13 @@ video {
 }
 
 .authIntro {
-  border: 1px solid #dbeafe;
+  border: none;
   border-radius: 14px;
   padding: 28px;
   background: rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
+  box-shadow: 0 24px 56px rgba(15, 23, 42, 0.14);
 }
 
 .authBrand {
@@ -249,7 +250,8 @@ video {
 }
 
 .authMicrosoftBtn {
-  width: 100%;
+  width: min(100%, 360px);
+  margin: 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
