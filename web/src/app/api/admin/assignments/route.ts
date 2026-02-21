@@ -310,3 +310,51 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request) {
+  const auth = await requireAuth();
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: 401 });
+  }
+  if (!isAdminSession(auth.session)) {
+    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  }
+
+  const { searchParams } = new URL(req.url);
+  const unidadeId = parsePositiveInt(searchParams.get("unidade_id"));
+  if (!unidadeId) {
+    return NextResponse.json({ error: "INVALID_UNIDADE" }, { status: 400 });
+  }
+
+  try {
+    const sql = getSql();
+    const deleted = await (sql<
+      {
+        id: number;
+        nome: string;
+      }[]
+    >`
+      DELETE FROM unidade
+      WHERE id = ${unidadeId}
+      RETURNING id, nome
+    ` as unknown as Promise<
+      {
+        id: number;
+        nome: string;
+      }[]
+    >);
+
+    if (!deleted[0]) {
+      return NextResponse.json({ error: "UNIDADE_NOT_FOUND" }, { status: 404 });
+    }
+
+    return NextResponse.json({ ok: true, unidade: deleted[0] });
+  } catch (err) {
+    const code = (err as { code?: string } | null)?.code;
+    if (code === "23503") {
+      return NextResponse.json({ error: "UNIDADE_IN_USE" }, { status: 409 });
+    }
+    const message = err instanceof Error ? err.message : "UNKNOWN";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}

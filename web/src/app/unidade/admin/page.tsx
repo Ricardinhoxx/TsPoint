@@ -33,6 +33,8 @@ export default function AdminAssignmentsPage() {
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [newUnidadeNome, setNewUnidadeNome] = useState("");
   const [creatingUnidade, setCreatingUnidade] = useState(false);
+  const [deleteUnidadeId, setDeleteUnidadeId] = useState<number | null>(null);
+  const [deletingUnidade, setDeletingUnidade] = useState(false);
 
   const unidadeMap = useMemo(() => {
     return new Map(unidades.map((u) => [u.id, u.nome]));
@@ -187,6 +189,57 @@ export default function AdminAssignmentsPage() {
     }
   }
 
+  async function deleteUnidade() {
+    if (!deleteUnidadeId) {
+      setError("Selecione uma loja para apagar.");
+      return;
+    }
+
+    const target = unidades.find((u) => u.id === deleteUnidadeId);
+    const firstOk = window.confirm(
+      `Deseja apagar a loja ${target?.nome ?? `id=${deleteUnidadeId}`}?`
+    );
+    if (!firstOk) return;
+
+    const token = window.prompt('Digite APAGAR para confirmar a exclusão da loja:');
+    if ((token ?? "").trim().toUpperCase() !== "APAGAR") {
+      setError("Confirmação inválida. Exclusão cancelada.");
+      return;
+    }
+
+    setDeletingUnidade(true);
+    setError(null);
+    setStatusMsg(null);
+    try {
+      const res = await fetch(`/api/admin/assignments?unidade_id=${deleteUnidadeId}`, {
+        method: "DELETE"
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        const code = String(data?.error ?? `HTTP ${res.status}`);
+        if (code === "UNIDADE_IN_USE") {
+          throw new Error(
+            "Não é possível apagar esta loja porque ela está em uso (supervisores, colaboradores ou pontos)."
+          );
+        }
+        throw new Error(code);
+      }
+
+      const unidade = data?.unidade as Unidade | undefined;
+      setStatusMsg(
+        unidade
+          ? `Loja apagada com sucesso: ${unidade.nome} (id=${unidade.id}).`
+          : "Loja apagada com sucesso."
+      );
+      setDeleteUnidadeId(null);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Falha ao apagar loja");
+    } finally {
+      setDeletingUnidade(false);
+    }
+  }
+
   return (
     <div className="containerWide">
       <div className="row" style={{ justifyContent: "space-between" }}>
@@ -234,6 +287,35 @@ export default function AdminAssignmentsPage() {
             {creatingUnidade ? "Criando..." : "Criar loja"}
           </button>
         </div>
+      </div>
+
+      <div className="spacer" />
+
+      <div className="card">
+        <h2 style={{ marginTop: 0 }}>Apagar loja</h2>
+        <div className="row" style={{ alignItems: "flex-end", flexWrap: "wrap" }}>
+          <div style={{ minWidth: 320, flex: 1 }}>
+            <label>Loja</label>
+            <select
+              value={deleteUnidadeId ? String(deleteUnidadeId) : ""}
+              onChange={(e) => setDeleteUnidadeId(e.target.value ? Number(e.target.value) : null)}
+            >
+              <option value="">Selecione...</option>
+              {unidades.map((u) => (
+                <option key={u.id} value={String(u.id)}>
+                  {u.nome} (id={u.id})
+                </option>
+              ))}
+            </select>
+          </div>
+          <button className="secondary" onClick={deleteUnidade} disabled={deletingUnidade}>
+            {deletingUnidade ? "Apagando..." : "Apagar loja"}
+          </button>
+        </div>
+        <div className="spacer" />
+        <small className="muted">
+          Obs.: lojas em uso por supervisores, colaboradores ou pontos não podem ser apagadas.
+        </small>
       </div>
 
       <div className="spacer" />
