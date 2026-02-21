@@ -47,6 +47,22 @@ export default function MinhaUnidadePage() {
     return funcionarios.find((f) => f.id === match.funcionario_id) ?? null;
   }, [funcionarios, match]);
 
+  function recognizeErrorMessage(raw: unknown): string {
+    const code = String(raw ?? "").trim().toUpperCase();
+    switch (code) {
+      case "FACE_ENGINE_LOAD_FAILED":
+        return "Serviço facial indisponível no momento. Tente novamente em alguns instantes.";
+      case "FACE_API_TIMEOUT":
+        return "Tempo limite do reconhecimento facial. Tente novamente.";
+      case "FACE_API_UNREACHABLE":
+        return "Serviço de reconhecimento não está acessível no momento.";
+      case "NO_FACE_DETECTED":
+        return "Nenhum rosto detectado na captura.";
+      default:
+        return code || "Erro ao reconhecer rosto.";
+    }
+  }
+
   async function loadContext() {
     setLoadError(null);
     const uRes = await fetch("/api/unidade/me");
@@ -116,7 +132,8 @@ export default function MinhaUnidadePage() {
       }
     } catch (err) {
       setMatch({ matched: false });
-      setPontoResult(err instanceof Error ? `Erro: ${err.message}` : "Erro");
+      const raw = err instanceof Error ? err.message : "Erro";
+      setPontoResult(`Erro: ${recognizeErrorMessage(raw)}`);
     } finally {
       setRecognizing(false);
     }

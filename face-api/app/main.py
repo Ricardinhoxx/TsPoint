@@ -3,6 +3,8 @@ from __future__ import annotations
 import base64
 import hashlib
 import os
+import shutil
+from pathlib import Path
 from urllib.parse import urlparse, parse_qsl, urlencode, urlunparse
 from dataclasses import dataclass
 from typing import Any
@@ -73,10 +75,26 @@ def _load_face_engine():
   return engine
 
 
+def _clear_model_cache(model: str) -> None:
+  model_dir = Path.home() / ".insightface" / "models" / model
+  if model_dir.exists():
+    shutil.rmtree(model_dir, ignore_errors=True)
+
+
+def _looks_like_corrupt_model_error(exc: Exception) -> bool:
+  msg = str(exc).upper()
+  return (
+    "INVALID_PROTOBUF" in msg
+    or "PROTOBUF PARSING FAILED" in msg
+    or ("LOAD MODEL FROM" in msg and ".ONNX" in msg and "FAILED" in msg)
+  )
+
+
 @app.on_event("startup")
 def startup():
   # Keep startup fast on small instances. Heavy model load can be deferred.
   app.state.face_engine = None
+  app.state.face_engine_recovery_attempted = False
   if _is_fake_mode():
     return
   if os.getenv("FACE_PRELOAD", "0") == "1":
@@ -97,10 +115,30 @@ def image_to_embedding(image_bytes: bytes) -> np.ndarray:
       engine = _load_face_engine()
       app.state.face_engine = engine
     except Exception as exc:
-      raise HTTPException(
-        status_code=500,
-        detail=f"FACE_ENGINE_LOAD_FAILED: {str(exc)[:180]}",
-      ) from exc
+      model = os.getenv("FACE_MODEL", "buffalo_s")
+      attempted = bool(getattr(app.state, "face_engine_recovery_attempted", False))
+      if not attempted and _looks_like_corrupt_model_error(exc):
+        app.state.face_engine_recovery_attempted = True
+        _clear_model_cache(model)
+        try:
+          engine = _load_face_engine()
+          app.state.face_engine = engine
+        except Exception as retry_exc:
+          raise HTTPException(
+            status_code=500,
+            detail=f"FACE_ENGINE_LOAD_FAILED: {str(retry_exc)[:180]}",
+          ) from retry_exc
+      else:
+        raise HTTPException(
+          status_code=500,
+          detail=f"FACE_ENGINE_LOAD_FAILED: {str(exc)[:180]}",
+        ) from exc
+
+  if engine is None:
+    raise HTTPException(
+      status_code=500,
+      detail="FACE_ENGINE_LOAD_FAILED: engine not initialized",
+    )
 
   try:
     import cv2  # type: ignore

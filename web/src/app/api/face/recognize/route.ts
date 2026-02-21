@@ -63,8 +63,13 @@ export async function POST(req: Request) {
 
   const data = await res.json().catch(() => null);
   if (!res.ok) {
+    const upstream = String(data?.detail ?? data?.error ?? `FACE_API_${res.status}`);
+    const normalized =
+      upstream.includes("FACE_ENGINE_LOAD_FAILED")
+        ? "FACE_ENGINE_LOAD_FAILED"
+        : upstream;
     return NextResponse.json(
-      { error: data?.detail ?? data?.error ?? `FACE_API_${res.status}` },
+      { error: normalized },
       { status: 502 }
     );
   }
