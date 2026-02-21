@@ -43,12 +43,25 @@ export async function GET(req: Request) {
             local_tipo: LocalTipo;
             status: string;
             unidade_id: number;
+            face_embeddings: number;
           }[]
         >`
-          SELECT id, nome, turno, local_tipo::text as local_tipo, status, unidade_id
-          FROM funcionario
-          WHERE unidade_id = ${unidadeId}
-          ORDER BY nome ASC
+          SELECT
+            f.id,
+            f.nome,
+            f.turno,
+            f.local_tipo::text as local_tipo,
+            f.status,
+            f.unidade_id,
+            COALESCE(fe.embeddings, 0)::int as face_embeddings
+          FROM funcionario f
+          LEFT JOIN (
+            SELECT funcionario_id, COUNT(*)::int AS embeddings
+            FROM face_embedding
+            GROUP BY funcionario_id
+          ) fe ON fe.funcionario_id = f.id
+          WHERE f.unidade_id = ${unidadeId}
+          ORDER BY f.nome ASC
         ` as unknown as Promise<
           {
             id: number;
@@ -57,6 +70,7 @@ export async function GET(req: Request) {
             local_tipo: LocalTipo;
             status: string;
             unidade_id: number;
+            face_embeddings: number;
           }[]
         >)
       : await (sql<
@@ -67,11 +81,24 @@ export async function GET(req: Request) {
             local_tipo: LocalTipo;
             status: string;
             unidade_id: number;
+            face_embeddings: number;
           }[]
         >`
-          SELECT id, nome, turno, local_tipo::text as local_tipo, status, unidade_id
-          FROM funcionario
-          ORDER BY unidade_id ASC, nome ASC
+          SELECT
+            f.id,
+            f.nome,
+            f.turno,
+            f.local_tipo::text as local_tipo,
+            f.status,
+            f.unidade_id,
+            COALESCE(fe.embeddings, 0)::int as face_embeddings
+          FROM funcionario f
+          LEFT JOIN (
+            SELECT funcionario_id, COUNT(*)::int AS embeddings
+            FROM face_embedding
+            GROUP BY funcionario_id
+          ) fe ON fe.funcionario_id = f.id
+          ORDER BY f.unidade_id ASC, f.nome ASC
         ` as unknown as Promise<
           {
             id: number;
@@ -80,6 +107,7 @@ export async function GET(req: Request) {
             local_tipo: LocalTipo;
             status: string;
             unidade_id: number;
+            face_embeddings: number;
           }[]
         >);
 

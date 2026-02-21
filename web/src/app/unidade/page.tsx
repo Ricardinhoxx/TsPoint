@@ -13,6 +13,7 @@ type Funcionario = {
   turno: number;
   local_tipo: LocalTipo;
   status: string;
+  face_embeddings?: number;
 };
 
 type Unidade = { id: number; nome: string };
@@ -108,6 +109,9 @@ export default function MinhaUnidadePage() {
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
       setMatch(data);
+      if (!data?.matched) {
+        setPontoResult("Nenhum match. Verifique se o colaborador possui base facial cadastrada.");
+      }
     } catch (err) {
       setMatch({ matched: false });
       setPontoResult(err instanceof Error ? `Erro: ${err.message}` : "Erro");
@@ -256,6 +260,7 @@ export default function MinhaUnidadePage() {
                   <th>Turno</th>
                   <th>Local</th>
                   <th>Status</th>
+                  <th>Base facial</th>
                   {role === "ADMIN" ? <th>Ações</th> : null}
                 </tr>
               </thead>
@@ -266,6 +271,7 @@ export default function MinhaUnidadePage() {
                     <td>{f.turno}</td>
                     <td>{f.local_tipo}</td>
                     <td>{f.status}</td>
+                    <td>{(f.face_embeddings ?? 0) > 0 ? `Cadastrada (${f.face_embeddings})` : "Não cadastrada"}</td>
                     {role === "ADMIN" ? (
                       <td>
                         {pendingDeleteId === f.id ? (
