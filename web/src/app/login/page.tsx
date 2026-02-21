@@ -19,7 +19,7 @@ function MicrosoftIcon() {
 function prettyError(err: unknown): string {
   const raw = err instanceof Error ? err.message : "Falha ao entrar";
   if (raw.includes("SUPABASE_CLIENT_NOT_CONFIGURED")) {
-    return "Configuracao ausente: NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY.";
+    return "Configuração ausente: NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY.";
   }
   return raw;
 }
@@ -108,18 +108,13 @@ export default function LoginPage() {
             />
           </div>
 
-          <h1 className="authTitle">Acesso ao Digitaliza</h1>
+          <h1 className="authTitle">Presença colaborador</h1>
           <p className="authSubtitle">
             Plataforma de ponto e reconhecimento facial. Entre com sua conta Microsoft corporativa.
           </p>
         </section>
 
         <section className="card authCard">
-          <h2 style={{ marginTop: 0 }}>Entrar</h2>
-          <small className="muted">Use o e-mail corporativo autorizado.</small>
-
-          <div className="spacer" />
-
           <button
             type="button"
             onClick={onMicrosoftLogin}
@@ -130,11 +125,6 @@ export default function LoginPage() {
             <MicrosoftIcon />
             <span>{loadingMicrosoft ? "Conectando..." : "Entrar com Microsoft"}</span>
           </button>
-
-          <div className="spacer" />
-          <small className="muted authHint">
-            Se nao conseguir entrar, confirme se seu usuario esta atribuido com funcao no Admin.
-          </small>
 
           {error ? (
             <>
