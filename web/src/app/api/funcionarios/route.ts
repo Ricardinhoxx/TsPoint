@@ -43,6 +43,7 @@ export async function GET(req: Request) {
             local_tipo: LocalTipo;
             status: string;
             unidade_id: number;
+            unidade_nome: string;
             face_embeddings: number;
           }[]
         >`
@@ -53,8 +54,10 @@ export async function GET(req: Request) {
             f.local_tipo::text as local_tipo,
             f.status,
             f.unidade_id,
+            u.nome AS unidade_nome,
             COALESCE(fe.embeddings, 0)::int as face_embeddings
           FROM funcionario f
+          JOIN unidade u ON u.id = f.unidade_id
           LEFT JOIN (
             SELECT funcionario_id, COUNT(*)::int AS embeddings
             FROM face_embedding
@@ -70,6 +73,7 @@ export async function GET(req: Request) {
             local_tipo: LocalTipo;
             status: string;
             unidade_id: number;
+            unidade_nome: string;
             face_embeddings: number;
           }[]
         >)
@@ -81,6 +85,7 @@ export async function GET(req: Request) {
             local_tipo: LocalTipo;
             status: string;
             unidade_id: number;
+            unidade_nome: string;
             face_embeddings: number;
           }[]
         >`
@@ -91,8 +96,10 @@ export async function GET(req: Request) {
             f.local_tipo::text as local_tipo,
             f.status,
             f.unidade_id,
+            u.nome AS unidade_nome,
             COALESCE(fe.embeddings, 0)::int as face_embeddings
           FROM funcionario f
+          JOIN unidade u ON u.id = f.unidade_id
           LEFT JOIN (
             SELECT funcionario_id, COUNT(*)::int AS embeddings
             FROM face_embedding
@@ -107,6 +114,7 @@ export async function GET(req: Request) {
             local_tipo: LocalTipo;
             status: string;
             unidade_id: number;
+            unidade_nome: string;
             face_embeddings: number;
           }[]
         >);
