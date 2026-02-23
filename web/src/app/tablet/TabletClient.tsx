@@ -37,6 +37,26 @@ function recognizeErrorMessage(raw: unknown): string {
   }
 }
 
+function cameraErrorMessage(raw: unknown): string {
+  if (raw instanceof DOMException) {
+    switch (raw.name) {
+      case "NotAllowedError":
+      case "SecurityError":
+        return "Permissao da camera bloqueada. Libere o acesso nas configuracoes do navegador.";
+      case "NotFoundError":
+      case "DevicesNotFoundError":
+        return "Nenhuma camera foi encontrada neste dispositivo.";
+      case "NotReadableError":
+      case "TrackStartError":
+        return "A camera esta em uso por outro app.";
+      default:
+        return raw.message || "Falha ao acessar camera.";
+    }
+  }
+
+  return raw instanceof Error ? raw.message : "Falha ao acessar camera.";
+}
+
 export default function TabletClient() {
   const searchParams = useSearchParams();
   const [loadingSession, setLoadingSession] = useState(true);
@@ -45,6 +65,7 @@ export default function TabletClient() {
   const [recognizing, setRecognizing] = useState(false);
   const [match, setMatch] = useState<Match | null>(null);
   const [actionResult, setActionResult] = useState<string | null>(null);
+  const [started, setStarted] = useState(false);
 
   const token = searchParams.get("token");
 
@@ -145,6 +166,25 @@ export default function TabletClient() {
     window.location.href = "/tablet";
   }
 
+  async function iniciarTablet() {
+    setSessionError(null);
+
+    try {
+      if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+        throw new Error("Este navegador nao suporta acesso a camera.");
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user" },
+        audio: false,
+      });
+      stream.getTracks().forEach((track) => track.stop());
+      setStarted(true);
+    } catch (err) {
+      setSessionError(cameraErrorMessage(err));
+    }
+  }
+
   const headerText = useMemo(() => {
     if (!session) return "Tablet de ponto";
     return `${session.nome_dispositivo} - ${session.unidade_nome}`;
@@ -195,16 +235,27 @@ export default function TabletClient() {
         </>
       ) : null}
 
-      <CameraModal
-        onClose={() => null}
-        onCapture={onCapture}
-        onConfirmPonto={onConfirmPonto}
-        recognizing={recognizing}
-        match={match}
-        actionResult={actionResult}
-        role="SUPERVISOR"
-        hideCloseButton
-      />
+      {!started ? (
+        <div className="card">
+          <h2 style={{ marginTop: 0 }}>Pronto para iniciar</h2>
+          <small className="muted">
+            Toque em iniciar para abrir a camera e comecar o registro de ponto facial.
+          </small>
+          <div className="spacer" />
+          <button onClick={iniciarTablet}>Iniciar</button>
+        </div>
+      ) : (
+        <CameraModal
+          onClose={() => setStarted(false)}
+          onCapture={onCapture}
+          onConfirmPonto={onConfirmPonto}
+          recognizing={recognizing}
+          match={match}
+          actionResult={actionResult}
+          role="SUPERVISOR"
+          hideCloseButton
+        />
+      )}
     </div>
   );
 }
