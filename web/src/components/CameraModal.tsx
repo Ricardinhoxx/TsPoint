@@ -219,7 +219,7 @@ export default function CameraModal({
               onClick={confirmPonto}
               disabled={confirming || recognizing || busy}
             >
-              {confirming ? "Confirmando..." : "Confirmar ponto"}
+              {confirming ? "Confirmando..." : "Confirmar presença"}
             </button>
           ) : null}
           <small className="muted">
