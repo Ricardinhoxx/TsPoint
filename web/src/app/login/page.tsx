@@ -140,7 +140,7 @@ export default function LoginPage() {
             <>
               <div className="spacer" />
               <div className="card authErrorCard" aria-live="polite">
-                Nao foi possivel autenticar. {error}
+                Não foi possivel autenticar. {error}
               </div>
             </>
           ) : null}

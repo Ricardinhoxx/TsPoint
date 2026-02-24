@@ -361,7 +361,7 @@ export default function MinhaUnidadePage() {
                     {role === "ADMIN" ? ` | score=${match.score?.toFixed(3) ?? "n/a"}` : ""})
                   </small>
                 </p>
-                <button onClick={confirmPonto}>Confirmar ponto</button>
+                <button onClick={confirmPonto}>Confirmar presença</button>
               </>
             ) : (
               <p>Nenhum match acima do limiar.</p>

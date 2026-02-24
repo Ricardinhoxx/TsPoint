@@ -119,18 +119,18 @@ export default function AdminAssignmentsPage() {
   async function saveSupervisor(row: Supervisor) {
     const original = supervisorsOriginal.find((s) => s.id === row.id);
     if (!original) {
-      setError("Supervisor base nao encontrado para validacao.");
+      setError("Supervisor base não encontrado para validação.");
       return;
     }
 
     if (requiresAdminDoubleConfirm(original.role, row.role)) {
       const firstOk = window.confirm(
-        `Voce esta alterando um supervisor com privilegio ADMIN (${row.email}). Deseja continuar?`
+        `Você esta alterando um supervisor com privilegio ADMIN (${row.email}). Deseja continuar?`
       );
       if (!firstOk) return;
-      const secondToken = window.prompt('Digite ADMIN para confirmar esta alteracao:');
+      const secondToken = window.prompt('Digite ADMIN para confirmar esta alteracão:');
       if ((secondToken ?? "").trim().toUpperCase() !== "ADMIN") {
-        setError("Confirmacao invalida. Alteracao cancelada.");
+        setError("Confirmação invalida. Alteração cancelada.");
         return;
       }
     }
