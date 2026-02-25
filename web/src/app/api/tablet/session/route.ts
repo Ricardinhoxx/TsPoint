@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSql } from "@/lib/db";
 import { clearTabletSession, hashTabletToken, setTabletSession, type TabletSession } from "@/lib/tabletAuth";
 import { getActiveTabletSession } from "@/lib/tabletSessionGuard";
+import { isTrustedMutationRequest } from "@/lib/security";
 
 export const runtime = "nodejs";
 
@@ -51,6 +52,10 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  if (!isTrustedMutationRequest(req)) {
+    return NextResponse.json({ error: "FORBIDDEN_ORIGIN" }, { status: 403 });
+  }
+
   const body = (await req.json().catch(() => null)) as { token?: string } | null;
   const rawToken = String(body?.token ?? "").trim();
   if (!rawToken) return NextResponse.json({ error: "INVALID_TOKEN" }, { status: 400 });
@@ -77,7 +82,11 @@ export async function POST(req: Request) {
   return NextResponse.json({ ok: true, tablet: session.tablet });
 }
 
-export async function DELETE() {
+export async function DELETE(req: Request) {
+  if (!isTrustedMutationRequest(req)) {
+    return NextResponse.json({ error: "FORBIDDEN_ORIGIN" }, { status: 403 });
+  }
+
   await clearTabletSession();
   return NextResponse.json({ ok: true });
 }

@@ -1,6 +1,7 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getSql } from "@/lib/db";
 import { isAdminSession, parsePositiveInt, requireAuth } from "@/lib/rbac";
+import { isTrustedMutationRequest } from "@/lib/security";
 
 export const runtime = "nodejs";
 
@@ -137,6 +138,10 @@ export async function GET(req: Request) {
 }
 
 export async function PATCH(req: Request) {
+  if (!isTrustedMutationRequest(req)) {
+    return NextResponse.json({ error: "FORBIDDEN_ORIGIN" }, { status: 403 });
+  }
+
   const auth = await requireAuth();
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: 401 });
@@ -261,12 +266,16 @@ export async function PATCH(req: Request) {
     if (code === "42P01") {
       return NextResponse.json({ error: "AUDIT_TABLE_MISSING" }, { status: 500 });
     }
-    const message = err instanceof Error ? err.message : "UNKNOWN";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("[api/admin/assignments][PATCH]", err);
+    return NextResponse.json({ error: "ASSIGNMENT_UPDATE_FAILED" }, { status: 500 });
   }
 }
 
 export async function POST(req: Request) {
+  if (!isTrustedMutationRequest(req)) {
+    return NextResponse.json({ error: "FORBIDDEN_ORIGIN" }, { status: 403 });
+  }
+
   const auth = await requireAuth();
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: 401 });
@@ -306,12 +315,16 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true, unidade: inserted[0] }, { status: 201 });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "UNKNOWN";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("[api/admin/assignments][POST]", err);
+    return NextResponse.json({ error: "UNIDADE_CREATE_FAILED" }, { status: 500 });
   }
 }
 
 export async function DELETE(req: Request) {
+  if (!isTrustedMutationRequest(req)) {
+    return NextResponse.json({ error: "FORBIDDEN_ORIGIN" }, { status: 403 });
+  }
+
   const auth = await requireAuth();
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: 401 });
@@ -354,7 +367,7 @@ export async function DELETE(req: Request) {
     if (code === "23503") {
       return NextResponse.json({ error: "UNIDADE_IN_USE" }, { status: 409 });
     }
-    const message = err instanceof Error ? err.message : "UNKNOWN";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("[api/admin/assignments][DELETE]", err);
+    return NextResponse.json({ error: "UNIDADE_DELETE_FAILED" }, { status: 500 });
   }
 }

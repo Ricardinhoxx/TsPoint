@@ -1,6 +1,7 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getSql } from "@/lib/db";
 import { isAdminSession, parsePositiveInt, requireAuth } from "@/lib/rbac";
+import { isTrustedMutationRequest } from "@/lib/security";
 
 export const runtime = "nodejs";
 
@@ -30,9 +31,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const queryUnidadeId = parsePositiveInt(searchParams.get("unidade_id"));
 
-    const unidadeId = isAdmin
-      ? queryUnidadeId
-      : auth.session.supervisor.unidade_id;
+    const unidadeId = isAdmin ? queryUnidadeId : auth.session.supervisor.unidade_id;
 
     const rows = unidadeId
       ? await (sql<
@@ -123,17 +122,17 @@ export async function GET(req: Request) {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     const code = (err as any)?.code;
-    const details =
-      process.env.NODE_ENV === "production" ? undefined : { code, message };
+    const details = process.env.NODE_ENV === "production" ? undefined : { code, message };
     console.error("[api/funcionarios][GET]", { code, message });
-    return NextResponse.json(
-      { error: "DB_ERROR", ...(details ?? {}) },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "DB_ERROR", ...(details ?? {}) }, { status: 500 });
   }
 }
 
 export async function POST(req: Request) {
+  if (!isTrustedMutationRequest(req)) {
+    return NextResponse.json({ error: "FORBIDDEN_ORIGIN" }, { status: 403 });
+  }
+
   const auth = await requireAuth();
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: 401 });
@@ -201,25 +200,22 @@ export async function POST(req: Request) {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     const code = (err as any)?.code;
-    const details =
-      process.env.NODE_ENV === "production" ? undefined : { code, message };
+    const details = process.env.NODE_ENV === "production" ? undefined : { code, message };
     console.error("[api/funcionarios][POST]", { code, message });
 
     if (code === "23505") {
-      return NextResponse.json(
-        { error: "DUPLICATE_KEY", ...(details ?? {}) },
-        { status: 409 }
-      );
+      return NextResponse.json({ error: "DUPLICATE_KEY", ...(details ?? {}) }, { status: 409 });
     }
 
-    return NextResponse.json(
-      { error: "DB_ERROR", ...(details ?? {}) },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "DB_ERROR", ...(details ?? {}) }, { status: 500 });
   }
 }
 
 export async function DELETE(req: Request) {
+  if (!isTrustedMutationRequest(req)) {
+    return NextResponse.json({ error: "FORBIDDEN_ORIGIN" }, { status: 403 });
+  }
+
   const auth = await requireAuth();
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: 401 });
@@ -299,20 +295,13 @@ export async function DELETE(req: Request) {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     const code = (err as any)?.code;
-    const details =
-      process.env.NODE_ENV === "production" ? undefined : { code, message };
+    const details = process.env.NODE_ENV === "production" ? undefined : { code, message };
     console.error("[api/funcionarios][DELETE]", { code, message });
 
     if (code === "23503") {
-      return NextResponse.json(
-        { error: "FUNCIONARIO_HAS_PONTO", ...(details ?? {}) },
-        { status: 409 }
-      );
+      return NextResponse.json({ error: "FUNCIONARIO_HAS_PONTO", ...(details ?? {}) }, { status: 409 });
     }
 
-    return NextResponse.json(
-      { error: "DB_ERROR", ...(details ?? {}) },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "DB_ERROR", ...(details ?? {}) }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSql } from "@/lib/db";
 import { parsePositiveInt, requireAuth } from "@/lib/rbac";
+import { isTrustedMutationRequest } from "@/lib/security";
 
 export const runtime = "nodejs";
 export const preferredRegion = "gru1";
@@ -92,6 +93,10 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  if (!isTrustedMutationRequest(req)) {
+    return NextResponse.json({ error: "FORBIDDEN_ORIGIN" }, { status: 403 });
+  }
+
   const auth = await requireAuth();
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: 401 });

@@ -1,5 +1,5 @@
-﻿import { NextResponse } from "next/server";
-import { requireSupervisor } from "@/lib/rbac";
+import { NextResponse } from "next/server";
+import { isAdminSession, requireSupervisor } from "@/lib/rbac";
 
 export const runtime = "nodejs";
 
@@ -11,6 +11,9 @@ export async function GET() {
   const auth = await requireSupervisor();
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: 401 });
+  }
+  if (!isAdminSession(auth.session)) {
+    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
 
   return NextResponse.json({

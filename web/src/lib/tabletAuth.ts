@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { createHash } from "crypto";
 
 const TABLET_COOKIE_NAME = "tablet_session";
+const TABLET_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
 function requiredEnv(name: string): string {
   const value = process.env[name];
@@ -40,7 +41,9 @@ export async function setTabletSession(session: TabletSession) {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
-    path: "/"
+    path: "/",
+    maxAge: TABLET_SESSION_MAX_AGE_SECONDS,
+    priority: "high"
   });
 }
 

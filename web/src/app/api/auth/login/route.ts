@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
 import { getSql } from "@/lib/db";
 import { setSession } from "@/lib/auth";
+import { isTrustedMutationRequest } from "@/lib/security";
 
 export const runtime = "nodejs";
 
@@ -369,6 +370,10 @@ async function createOAuthSupervisor(sql: ReturnType<typeof getSql>, email: stri
 }
 
 export async function POST(req: Request) {
+  if (!isTrustedMutationRequest(req)) {
+    return NextResponse.json({ error: "FORBIDDEN_ORIGIN" }, { status: 403 });
+  }
+
   const body = (await req.json().catch(() => null)) as
     | { provider?: string; email?: string; password?: string; id_token?: string; access_token?: string }
     | null;

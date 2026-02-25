@@ -2,6 +2,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 
 const COOKIE_NAME = "session";
+const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 
 function requiredEnv(name: string): string {
   const value = process.env[name];
@@ -30,7 +31,9 @@ export async function setSession(session: Session) {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
-    path: "/"
+    path: "/",
+    maxAge: SESSION_MAX_AGE_SECONDS,
+    priority: "high"
   });
 }
 
@@ -56,4 +59,3 @@ export async function getSession(): Promise<Session | null> {
     return null;
   }
 }
-

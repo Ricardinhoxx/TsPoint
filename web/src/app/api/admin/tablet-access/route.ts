@@ -3,6 +3,7 @@ import { randomBytes } from "crypto";
 import { getSql } from "@/lib/db";
 import { isAdminSession, parsePositiveInt, requireAuth } from "@/lib/rbac";
 import { hashTabletToken } from "@/lib/tabletAuth";
+import { isTrustedMutationRequest } from "@/lib/security";
 
 export const runtime = "nodejs";
 
@@ -113,6 +114,10 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  if (!isTrustedMutationRequest(req)) {
+    return NextResponse.json({ error: "FORBIDDEN_ORIGIN" }, { status: 403 });
+  }
+
   const auth = await requireAuth();
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: 401 });
   if (!isAdminSession(auth.session)) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
@@ -181,6 +186,10 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+  if (!isTrustedMutationRequest(req)) {
+    return NextResponse.json({ error: "FORBIDDEN_ORIGIN" }, { status: 403 });
+  }
+
   const auth = await requireAuth();
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: 401 });
   if (!isAdminSession(auth.session)) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });

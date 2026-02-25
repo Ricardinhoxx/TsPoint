@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSql } from "@/lib/db";
 import { isAdminSession, requireAuth } from "@/lib/rbac";
 import { getActiveTabletSession } from "@/lib/tabletSessionGuard";
+import { isTrustedMutationRequest } from "@/lib/security";
 
 export const runtime = "nodejs";
 
@@ -13,6 +14,10 @@ function inferNextTipo(lastTipo: PontoTipo | null): PontoTipo {
 }
 
 export async function POST(req: Request) {
+  if (!isTrustedMutationRequest(req)) {
+    return NextResponse.json({ error: "FORBIDDEN_ORIGIN" }, { status: 403 });
+  }
+
   const auth = await requireAuth();
   const tabletSession = await getActiveTabletSession();
   const useTabletContext = Boolean(tabletSession?.tablet);
