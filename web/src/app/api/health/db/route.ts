@@ -33,7 +33,7 @@ export async function GET() {
       {
         ok: false,
         error: "DB_CONNECTION_FAILED",
-        ...(process.env.NODE_ENV === "production" ? {} : { code })
+        code
       },
       { status: 500 }
     );
