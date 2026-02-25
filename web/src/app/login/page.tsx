@@ -108,9 +108,9 @@ export default function LoginPage() {
             />
           </div>
 
-          <h1 className="authTitle">Presença do colaborador</h1>
+          <h1 className="authTitle">Portal de Presença</h1>
           <p className="authSubtitle">
-            Plataforma de registro de presença e reconhecimento facial. <span className="authAccent">Entre</span>{" "}
+            Portal de registro de presença e reconhecimento facial. <span className="authAccent">Entre</span>{" "}
             com sua conta Microsoft corporativa.
           </p>
         </section>
