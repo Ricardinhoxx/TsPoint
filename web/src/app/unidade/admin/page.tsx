@@ -52,6 +52,7 @@ export default function AdminAssignmentsPage() {
   const [tabletExpiresAt, setTabletExpiresAt] = useState("");
   const [creatingTabletAccess, setCreatingTabletAccess] = useState(false);
   const [revokingTabletAccessId, setRevokingTabletAccessId] = useState<number | null>(null);
+  const [deletingFuncionarioId, setDeletingFuncionarioId] = useState<number | null>(null);
 
   const unidadeMap = useMemo(() => {
     return new Map(unidades.map((u) => [u.id, u.nome]));
@@ -180,6 +181,61 @@ export default function AdminAssignmentsPage() {
       setError(e instanceof Error ? e.message : "Falha ao salvar colaborador");
     } finally {
       setSavingKey(null);
+    }
+  }
+
+  function deleteFuncionarioErrorMessage(raw: unknown): string {
+    const code = String(raw ?? "").trim().toUpperCase();
+    switch (code) {
+      case "FORBIDDEN_ADMIN_ONLY":
+        return "Apenas administradores podem apagar colaboradores.";
+      case "FUNCIONARIO_HAS_PONTO":
+        return "Colaborador possui pontos. Use a exclusão definitiva para apagar também o histórico.";
+      case "FUNCIONARIO_NOT_FOUND":
+        return "Colaborador não encontrado.";
+      case "INVALID_FUNCIONARIO":
+        return "Colaborador inválido.";
+      default:
+        return code || "Falha ao apagar colaborador.";
+    }
+  }
+
+  async function deleteFuncionario(row: Funcionario, purge = false) {
+    const firstPrompt = purge
+      ? `Deseja excluir definitivamente o colaborador ${row.nome}? Isso apagará todos os pontos.`
+      : `Deseja apagar o colaborador ${row.nome}?`;
+    const firstOk = window.confirm(firstPrompt);
+    if (!firstOk) return;
+
+    if (purge) {
+      const token = window.prompt('Digite APAGAR para confirmar a exclusão definitiva:');
+      if ((token ?? "").trim().toUpperCase() !== "APAGAR") {
+        setError("Confirmação inválida. Exclusão cancelada.");
+        return;
+      }
+    }
+
+    setDeletingFuncionarioId(row.id);
+    setError(null);
+    setStatusMsg(null);
+    try {
+      const res = await fetch(`/api/funcionarios?id=${row.id}${purge ? "&purge=1" : ""}`, { method: "DELETE" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
+
+      if (purge) {
+        setStatusMsg(
+          `Colaborador ${row.nome} excluído definitivamente. Pontos apagados: ${Number(data?.deleted_pontos ?? 0)}.`
+        );
+      } else {
+        setStatusMsg(`Colaborador ${row.nome} apagado com sucesso.`);
+      }
+      await load();
+    } catch (e) {
+      const raw = e instanceof Error ? e.message : "Falha ao apagar colaborador";
+      setError(deleteFuncionarioErrorMessage(raw));
+    } finally {
+      setDeletingFuncionarioId(null);
     }
   }
 
@@ -706,12 +762,28 @@ export default function AdminAssignmentsPage() {
                       </select>
                     </td>
                     <td>
-                      <button
-                        onClick={() => saveFuncionario(f)}
-                        disabled={savingKey === `fun-${f.id}`}
-                      >
-                        {savingKey === `fun-${f.id}` ? "Salvando..." : "Salvar"}
-                      </button>
+                      <div className="row" style={{ gap: 8 }}>
+                        <button
+                          onClick={() => saveFuncionario(f)}
+                          disabled={savingKey === `fun-${f.id}` || deletingFuncionarioId === f.id}
+                        >
+                          {savingKey === `fun-${f.id}` ? "Salvando..." : "Salvar"}
+                        </button>
+                        <button
+                          className="secondary"
+                          onClick={() => deleteFuncionario(f)}
+                          disabled={deletingFuncionarioId === f.id}
+                        >
+                          {deletingFuncionarioId === f.id ? "Apagando..." : "Apagar"}
+                        </button>
+                        <button
+                          className="secondary"
+                          onClick={() => deleteFuncionario(f, true)}
+                          disabled={deletingFuncionarioId === f.id}
+                        >
+                          {deletingFuncionarioId === f.id ? "Apagando..." : "Excluir definitivo"}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
