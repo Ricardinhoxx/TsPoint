@@ -22,14 +22,26 @@
   font-display: swap;
 }
 
+:root {
+  --color-bg: #ffffff;
+  --color-text: #111827;
+  --color-muted: #475569;
+  --color-border: #d1d5db;
+  --color-border-soft: #e5e7eb;
+  --color-primary: #0b4ddb;
+  --color-primary-contrast: #ffffff;
+  --color-focus-ring: rgba(11, 77, 219, 0.35);
+  --radius-0: 0;
+}
+
 html,
 body {
   padding: 0;
   margin: 0;
   font-family: var(--font-poppins), ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial,
     "Apple Color Emoji", "Segoe UI Emoji";
-  background: #ffffff;
-  color: #111827;
+  background: var(--color-bg);
+  color: var(--color-text);
 }
 
 h1,
@@ -56,9 +68,9 @@ h2 {
 }
 
 .card {
-  background: #ffffff;
-  border: 1px solid #d1d5db;
-  border-radius: 0;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-0);
   padding: 16px;
 }
 
@@ -73,18 +85,19 @@ h2 {
 }
 
 button {
-  background: #0b4ddb;
-  color: #ffffff;
-  border: 1px solid #0b4ddb;
-  border-radius: 0;
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-0);
   padding: 10px 12px;
   cursor: pointer;
+  transition: background-color 0.16s ease, color 0.16s ease, border-color 0.16s ease;
 }
 
 button.secondary {
-  background: #ffffff;
-  color: #111827;
-  border: 1px solid #d1d5db;
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
 }
 
 .btnLink {
@@ -92,36 +105,45 @@ button.secondary {
   align-items: center;
   justify-content: center;
   text-decoration: none;
-  background: #0b4ddb;
-  color: #ffffff;
-  border: 1px solid #0b4ddb;
-  border-radius: 0;
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-0);
   padding: 10px 12px;
   cursor: pointer;
+  transition: background-color 0.16s ease, color 0.16s ease, border-color 0.16s ease;
 }
 
 .btnLink.secondary {
-  background: #ffffff;
-  color: #111827;
-  border: 1px solid #d1d5db;
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
 }
 
 input {
   width: 100%;
   padding: 10px 12px;
-  border-radius: 0;
-  border: 1px solid #d1d5db;
-  background: #ffffff;
-  color: #111827;
+  border-radius: var(--radius-0);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
 }
 
 select {
   width: 100%;
   padding: 10px 12px;
-  border-radius: 0;
-  border: 1px solid #d1d5db;
-  background: #ffffff;
-  color: #111827;
+  border-radius: var(--radius-0);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+button:focus-visible,
+.btnLink:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
 
 label {
@@ -137,8 +159,8 @@ table {
 }
 
 .tableShell {
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
+  border: 1px solid var(--color-border-soft);
+  background: var(--color-bg);
 }
 
 td,
@@ -150,7 +172,7 @@ th {
 
 small.muted {
   opacity: 1;
-  color: #475569;
+  color: var(--color-muted);
 }
 
 .storeChip {
@@ -176,9 +198,9 @@ small.muted {
 
 .modal {
   width: min(720px, 100%);
-  background: #ffffff;
-  border: 1px solid #d1d5db;
-  border-radius: 0;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-0);
   padding: 16px;
 }
 
@@ -417,6 +439,18 @@ video {
 }
 
 @media (max-width: 820px) {
+  .row {
+    flex-wrap: wrap;
+  }
+
+  .tableShell {
+    overflow-x: auto;
+  }
+
+  .tableShell table {
+    min-width: 700px;
+  }
+
   .heroInner {
     grid-template-columns: 1fr;
     justify-items: start;
@@ -552,13 +586,6 @@ video {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
-}
-
-.presenceSummaryCard {
-  border: 1px solid #e5e7eb;
-  padding: 10px 12px;
-  font-weight: 600;
-  background: #f8fafc;
 }
 
 .presenceGrid {

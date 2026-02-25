@@ -232,11 +232,49 @@ export async function DELETE(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const funcionarioId = parsePositiveInt(searchParams.get("id"));
+    const purge = searchParams.get("purge") === "1";
     if (!funcionarioId) {
       return NextResponse.json({ error: "INVALID_FUNCIONARIO" }, { status: 400 });
     }
 
     const sql = getSql();
+    if (purge) {
+      return await sql.begin(async (tx: any) => {
+        const deletedPontos = await (tx<{ id: number }[]>`
+          DELETE FROM ponto
+          WHERE funcionario_id = ${funcionarioId}
+          RETURNING id
+        ` as unknown as Promise<{ id: number }[]>);
+
+        const deleted = await (tx<
+          {
+            id: number;
+            nome: string;
+          }[]
+        >`
+          DELETE FROM funcionario
+          WHERE id = ${funcionarioId}
+          RETURNING id, nome
+        ` as unknown as Promise<
+          {
+            id: number;
+            nome: string;
+          }[]
+        >);
+
+        if (!deleted[0]) {
+          return NextResponse.json({ error: "FUNCIONARIO_NOT_FOUND" }, { status: 404 });
+        }
+
+        return NextResponse.json({
+          ok: true,
+          purge: true,
+          deleted: deleted[0],
+          deleted_pontos: deletedPontos.length
+        });
+      });
+    }
+
     const deleted = await (sql<
       {
         id: number;

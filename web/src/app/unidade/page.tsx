@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import CameraModal from "@/components/CameraModal";
-import Image from "next/image";
 import Link from "next/link";
 
 type LocalTipo = "LOJA" | "ESCRITORIO" | "CD";
@@ -173,7 +172,7 @@ export default function MinhaUnidadePage() {
       case "FORBIDDEN_ADMIN_ONLY":
         return "Apenas administradores podem apagar colaboradores.";
       case "FUNCIONARIO_HAS_PONTO":
-        return "Não é possível apagar colaborador com pontos registrados.";
+        return "Colaborador possui pontos. Use a exclusão definitiva para apagar também o histórico.";
       case "FUNCIONARIO_NOT_FOUND":
         return "Colaborador não encontrado.";
       case "INVALID_FUNCIONARIO":
@@ -183,17 +182,23 @@ export default function MinhaUnidadePage() {
     }
   }
 
-  async function deleteFuncionario(f: Funcionario) {
+  async function deleteFuncionario(f: Funcionario, purge = false) {
     if (role !== "ADMIN") return;
 
     setManageResult(null);
     setPendingDeleteId(null);
     setDeletingId(f.id);
     try {
-      const res = await fetch(`/api/funcionarios?id=${f.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/funcionarios?id=${f.id}${purge ? "&purge=1" : ""}`, { method: "DELETE" });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
-      setManageResult(`Colaborador ${f.nome} apagado com sucesso.`);
+      if (purge) {
+        setManageResult(
+          `Colaborador ${f.nome} excluído definitivamente. Pontos apagados: ${Number(data?.deleted_pontos ?? 0)}.`
+        );
+      } else {
+        setManageResult(`Colaborador ${f.nome} apagado com sucesso.`);
+      }
       await loadFuncionarios().catch(() => null);
     } catch (err) {
       const raw = err instanceof Error ? err.message : "Falha ao apagar colaborador";
@@ -227,18 +232,9 @@ export default function MinhaUnidadePage() {
             </div>
 
             <div className="row">
-              <div className="brandLockup" aria-label="Parceria Bemol e Sodexo">
+              <div className="brandLockup" aria-label="Bemol">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img className="brandLogo brandLogoBemol" src="/brand/bemol-logo.svg" alt="Bemol" />
-                <span className="brandDivider" aria-hidden="true" />
-                <Image
-                  className="brandLogo brandLogoSodexo"
-                  src="/brand/sodexo-logo.png"
-                  alt="Sodexo"
-                  width={260}
-                  height={40}
-                  priority
-                />
               </div>
 
               <button className="secondary" onClick={logout}>
@@ -314,7 +310,13 @@ export default function MinhaUnidadePage() {
                               onClick={() => deleteFuncionario(f)}
                               disabled={deletingId === f.id}
                             >
-                              {deletingId === f.id ? "Apagando..." : "Prosseguir exclusão"}
+                              {deletingId === f.id ? "Apagando..." : "Excluir padrão"}
+                            </button>
+                            <button
+                              onClick={() => deleteFuncionario(f, true)}
+                              disabled={deletingId === f.id}
+                            >
+                              {deletingId === f.id ? "Apagando..." : "Excluir definitivo"}
                             </button>
                           </div>
                         ) : (

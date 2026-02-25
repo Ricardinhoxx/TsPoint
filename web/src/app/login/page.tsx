@@ -1,6 +1,5 @@
 ﻿"use client";
 
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
@@ -97,15 +96,6 @@ export default function LoginPage() {
           <div className="authBrand">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img className="brandLogo brandLogoBemol" src="/brand/bemol-logo.svg" alt="Bemol" />
-            <span className="brandDivider" aria-hidden="true" />
-            <Image
-              className="brandLogo brandLogoSodexo"
-              src="/brand/sodexo-logo.png"
-              alt="Sodexo"
-              width={260}
-              height={40}
-              priority
-            />
           </div>
 
           <h1 className="authTitle">Portal de Presença</h1>
