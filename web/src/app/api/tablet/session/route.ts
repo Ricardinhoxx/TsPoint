@@ -1,12 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSql } from "@/lib/db";
-import {
-  clearTabletSession,
-  getTabletSession,
-  hashTabletToken,
-  setTabletSession,
-  type TabletSession,
-} from "@/lib/tabletAuth";
+import { clearTabletSession, hashTabletToken, setTabletSession, type TabletSession } from "@/lib/tabletAuth";
+import { getActiveTabletSession } from "@/lib/tabletSessionGuard";
 
 export const runtime = "nodejs";
 
@@ -50,7 +45,7 @@ function sessionFromRow(row: TabletAccessRow): TabletSession {
 }
 
 export async function GET() {
-  const session = await getTabletSession();
+  const session = await getActiveTabletSession();
   if (!session) return NextResponse.json({ ok: false, error: "TABLET_UNAUTHENTICATED" }, { status: 401 });
   return NextResponse.json({ ok: true, tablet: session.tablet });
 }

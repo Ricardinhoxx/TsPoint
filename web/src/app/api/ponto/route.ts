@@ -1,7 +1,7 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getSql } from "@/lib/db";
 import { isAdminSession, requireAuth } from "@/lib/rbac";
-import { getTabletSession } from "@/lib/tabletAuth";
+import { getActiveTabletSession } from "@/lib/tabletSessionGuard";
 
 export const runtime = "nodejs";
 
@@ -14,7 +14,7 @@ function inferNextTipo(lastTipo: PontoTipo | null): PontoTipo {
 
 export async function POST(req: Request) {
   const auth = await requireAuth();
-  const tabletSession = await getTabletSession();
+  const tabletSession = await getActiveTabletSession();
   const useTabletContext = Boolean(tabletSession?.tablet);
   if (!auth.ok && !useTabletContext) {
     return NextResponse.json({ error: auth.error }, { status: 401 });

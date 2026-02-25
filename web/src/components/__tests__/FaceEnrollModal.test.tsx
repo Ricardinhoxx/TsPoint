@@ -3,7 +3,10 @@ import userEvent from "@testing-library/user-event";
 import FaceEnrollModal from "../FaceEnrollModal";
 
 jest.mock("@/lib/faceTracking", () => ({
-  useFaceTracking: () => ({ faceBox: null, engine: "none" })
+  useFaceTracking: () => ({
+    faceBox: { leftPct: 20, topPct: 20, widthPct: 40, heightPct: 40 },
+    engine: "ready"
+  })
 }));
 
 function createDeferred<T>() {
@@ -35,7 +38,9 @@ describe("FaceEnrollModal", () => {
 
     jest
       .spyOn(HTMLCanvasElement.prototype, "toDataURL")
-      .mockReturnValue("data:image/jpeg;base64,abc123");
+      .mockReturnValueOnce("data:image/jpeg;base64,abc123")
+      .mockReturnValueOnce("data:image/jpeg;base64,def456")
+      .mockReturnValueOnce("data:image/jpeg;base64,ghi789");
   });
 
   afterEach(() => {
@@ -50,10 +55,12 @@ describe("FaceEnrollModal", () => {
     render(<FaceEnrollModal onClose={jest.fn()} onEnroll={onEnroll} />);
 
     await user.click(screen.getByRole("button", { name: /capturar foto/i }));
+    await user.click(screen.getByRole("button", { name: /capturar foto/i }));
+    await user.click(screen.getByRole("button", { name: /capturar foto/i }));
     await user.click(screen.getByRole("button", { name: /salvar base/i }));
 
     expect(onEnroll).toHaveBeenCalledTimes(1);
-    expect(onEnroll).toHaveBeenCalledWith(["abc123"]);
+    expect(onEnroll).toHaveBeenCalledWith(["abc123", "def456", "ghi789"]);
     expect(screen.getByRole("button", { name: /cadastrando/i })).toBeDisabled();
 
     deferred.resolve();
@@ -69,6 +76,8 @@ describe("FaceEnrollModal", () => {
 
     render(<FaceEnrollModal onClose={jest.fn()} onEnroll={onEnroll} />);
 
+    await user.click(screen.getByRole("button", { name: /capturar foto/i }));
+    await user.click(screen.getByRole("button", { name: /capturar foto/i }));
     await user.click(screen.getByRole("button", { name: /capturar foto/i }));
     await user.click(screen.getByRole("button", { name: /salvar base/i }));
 

@@ -17,16 +17,22 @@ export async function middleware(req: NextRequest) {
     }
 
     const key = authSecretKey();
-    if (key) {
-      try {
-        await jwtVerify(token, key);
-      } catch {
-        const url = req.nextUrl.clone();
-        url.pathname = "/login";
-        const res = NextResponse.redirect(url);
-        res.cookies.delete("session");
-        return res;
-      }
+    if (!key) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/login";
+      const res = NextResponse.redirect(url);
+      res.cookies.delete("session");
+      return res;
+    }
+
+    try {
+      await jwtVerify(token, key);
+    } catch {
+      const url = req.nextUrl.clone();
+      url.pathname = "/login";
+      const res = NextResponse.redirect(url);
+      res.cookies.delete("session");
+      return res;
     }
   }
   return NextResponse.next();
