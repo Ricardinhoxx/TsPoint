@@ -393,10 +393,9 @@ export default function PresencaPage() {
             <div key={p.funcionario_id} className="presenceRankingItem">
               <div>
                 <span>{p.nome}</span>
-                <div>
-                  <small className="muted">
-                    Entrada: {p.hora_entrada_prevista ?? "--:--"} | Saída: {p.hora_saida_prevista ?? "--:--"}
-                  </small>
+                <div className="presencePersonSchedule">
+                  <span>Entrada: {p.hora_entrada_prevista ?? "--:--"}</span>
+                  <span>Saída: {p.hora_saida_prevista ?? "--:--"}</span>
                 </div>
               </div>
               <span className={squareClass(p.status_day)} />
