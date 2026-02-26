@@ -60,7 +60,8 @@ export default function MinhaUnidadePage() {
   const [diaristaResult, setDiaristaResult] = useState<string | null>(null);
   const [savingDiarista, setSavingDiarista] = useState(false);
   const [ajusteFuncionarioId, setAjusteFuncionarioId] = useState<number | null>(null);
-  const [ajusteDia, setAjusteDia] = useState<string>(() => toDateOnly(new Date()));
+  const [ajusteMes, setAjusteMes] = useState<string>(() => toMonthOnly(new Date()));
+  const [ajusteNomeBusca, setAjusteNomeBusca] = useState("");
   const [ajustePontos, setAjustePontos] = useState<PontoItem[]>([]);
   const [ajusteLoading, setAjusteLoading] = useState(false);
   const [ajusteError, setAjusteError] = useState<string | null>(null);
@@ -78,6 +79,12 @@ export default function MinhaUnidadePage() {
     return funcionarios.find((f) => f.id === match.funcionario_id) ?? null;
   }, [funcionarios, match]);
 
+  const funcionariosFiltradosAjuste = useMemo(() => {
+    const term = ajusteNomeBusca.trim().toLowerCase();
+    if (!term) return funcionarios;
+    return funcionarios.filter((f) => f.nome.toLowerCase().includes(term));
+  }, [funcionarios, ajusteNomeBusca]);
+
   function recognizeErrorMessage(raw: unknown): string {
     const code = String(raw ?? "").trim().toUpperCase();
     switch (code) {
@@ -94,11 +101,10 @@ export default function MinhaUnidadePage() {
     }
   }
 
-  function toDateOnly(d: Date): string {
+  function toMonthOnly(d: Date): string {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
+    return `${y}-${m}`;
   }
 
   function toLocalDateTimeInput(rawIso: string): string {
@@ -266,7 +272,7 @@ export default function MinhaUnidadePage() {
     setEditingPontoId(null);
     try {
       const res = await fetch(
-        `/api/ponto?funcionario_id=${ajusteFuncionarioId}&day=${encodeURIComponent(ajusteDia)}`
+        `/api/ponto?funcionario_id=${ajusteFuncionarioId}&month=${encodeURIComponent(ajusteMes)}`
       );
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
@@ -278,6 +284,14 @@ export default function MinhaUnidadePage() {
     } finally {
       setAjusteLoading(false);
     }
+  }
+
+  function onChangeBuscaColaborador(raw: string) {
+    setAjusteNomeBusca(raw);
+    const term = raw.trim().toLowerCase();
+    if (!term) return;
+    const exact = funcionarios.find((f) => f.nome.trim().toLowerCase() === term);
+    if (exact) setAjusteFuncionarioId(exact.id);
   }
 
   function iniciarEdicaoPonto(p: PontoItem) {
@@ -557,13 +571,27 @@ export default function MinhaUnidadePage() {
           <h2 style={{ marginTop: 0 }}>Ajuste manual de ponto</h2>
           <div className="row" style={{ alignItems: "flex-end", flexWrap: "wrap" }}>
             <div style={{ minWidth: 260, flex: 1 }}>
-              <label>Colaborador</label>
+              <label>Buscar colaborador</label>
+              <input
+                list="ajuste-colaboradores"
+                value={ajusteNomeBusca}
+                onChange={(e) => onChangeBuscaColaborador(e.target.value)}
+                placeholder="Digite o nome..."
+              />
+              <datalist id="ajuste-colaboradores">
+                {funcionarios.map((f) => (
+                  <option key={`nome-${f.id}`} value={f.nome} />
+                ))}
+              </datalist>
+            </div>
+            <div style={{ minWidth: 260, flex: 1 }}>
+              <label>Colaborador (lista)</label>
               <select
                 value={ajusteFuncionarioId ? String(ajusteFuncionarioId) : ""}
                 onChange={(e) => setAjusteFuncionarioId(e.target.value ? Number(e.target.value) : null)}
               >
                 <option value="">Selecione...</option>
-                {funcionarios.map((f) => (
+                {funcionariosFiltradosAjuste.map((f) => (
                   <option key={f.id} value={String(f.id)}>
                     {f.nome}
                   </option>
@@ -571,8 +599,8 @@ export default function MinhaUnidadePage() {
               </select>
             </div>
             <div>
-              <label>Dia</label>
-              <input type="date" value={ajusteDia} onChange={(e) => setAjusteDia(e.target.value)} />
+              <label>Mês</label>
+              <input type="month" value={ajusteMes} onChange={(e) => setAjusteMes(e.target.value)} />
             </div>
             <button onClick={carregarPontosAjuste} disabled={!ajusteFuncionarioId || ajusteLoading}>
               {ajusteLoading ? "Carregando..." : "Carregar pontos"}

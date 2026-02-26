@@ -15,6 +15,13 @@ function parseDateOnly(raw: string | null): string | null {
   return v;
 }
 
+function parseMonthOnly(raw: string | null): string | null {
+  if (!raw) return null;
+  const v = raw.trim();
+  if (!/^\d{4}-\d{2}$/.test(v)) return null;
+  return v;
+}
+
 function addDays(dateOnly: string, days: number): string {
   const d = new Date(`${dateOnly}T00:00:00`);
   d.setDate(d.getDate() + days);
@@ -22,6 +29,18 @@ function addDays(dateOnly: string, days: number): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
+}
+
+function monthStart(monthOnly: string): string {
+  return `${monthOnly}-01`;
+}
+
+function addMonths(monthOnly: string, months: number): string {
+  const start = new Date(`${monthOnly}-01T00:00:00`);
+  start.setMonth(start.getMonth() + months);
+  const y = start.getFullYear();
+  const m = String(start.getMonth() + 1).padStart(2, "0");
+  return `${y}-${m}-01`;
 }
 
 function inferNextTipo(lastTipo: PontoTipo | null): PontoTipo {
@@ -162,11 +181,13 @@ export async function GET(req: Request) {
   }
 
   const day = parseDateOnly(searchParams.get("day"));
-  if (!day) {
-    return NextResponse.json({ error: "INVALID_DAY" }, { status: 400 });
+  const month = parseMonthOnly(searchParams.get("month"));
+  if (!day && !month) {
+    return NextResponse.json({ error: "INVALID_RANGE" }, { status: 400 });
   }
 
-  const nextDay = addDays(day, 1);
+  const rangeStart = month ? monthStart(month) : (day as string);
+  const rangeEnd = month ? addMonths(month, 1) : addDays(day as string, 1);
   const isAdmin = isAdminSession(auth.session);
   const sql = getSql();
 
@@ -204,8 +225,8 @@ export async function GET(req: Request) {
         p.unidade_id
       FROM ponto p
       WHERE p.funcionario_id = ${funcionarioId}
-        AND p.timestamp >= ${day}::date
-        AND p.timestamp < ${nextDay}::date
+        AND p.timestamp >= ${rangeStart}::date
+        AND p.timestamp < ${rangeEnd}::date
       ORDER BY p.timestamp ASC, p.id ASC
     ` as unknown as Promise<{
       id: number;
