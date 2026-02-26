@@ -21,6 +21,9 @@ function requestProto(req: Request): "http" | "https" {
 function collectAllowedHosts(req: Request): Set<string> {
   const hosts = new Set<string>();
 
+  const requestUrl = toUrl(req.url);
+  if (requestUrl?.host) hosts.add(requestUrl.host.toLowerCase());
+
   const headerCandidates = [
     firstHeaderValue(req.headers.get("host")),
     firstHeaderValue(req.headers.get("x-forwarded-host")),
@@ -64,6 +67,9 @@ function isAllowedOrigin(urlRaw: string, allowedHosts: Set<string>, expectedProt
 
 // Allows non-browser clients without Origin/Referer, but blocks cross-site browser requests.
 export function isTrustedMutationRequest(req: Request): boolean {
+  const secFetchSite = firstHeaderValue(req.headers.get("sec-fetch-site")).toLowerCase();
+  if (secFetchSite === "cross-site") return false;
+
   const allowedHosts = collectAllowedHosts(req);
   if (allowedHosts.size === 0) return false;
   const expectedProto = requestProto(req);

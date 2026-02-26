@@ -292,7 +292,13 @@ function isAzureSupabaseProvider(payload: JWTPayload): boolean {
   if (!isObjectRecord(payload.app_metadata)) return true;
   const provider = payload.app_metadata.provider;
   if (typeof provider !== "string") return true;
-  return provider.toLowerCase() === "azure";
+  const normalized = provider.trim().toLowerCase();
+  return (
+    normalized === "azure" ||
+    normalized === "azure_oidc" ||
+    normalized === "microsoft" ||
+    normalized === "entra"
+  );
 }
 
 async function resolveSupabaseAzureIdentity(accessToken: string): Promise<string> {

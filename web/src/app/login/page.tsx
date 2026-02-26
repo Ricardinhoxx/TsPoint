@@ -20,6 +20,9 @@ function prettyError(err: unknown): string {
   if (raw.includes("SUPABASE_CLIENT_NOT_CONFIGURED")) {
     return "Configuração ausente: NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY.";
   }
+  if (raw.includes("FORBIDDEN_ORIGIN")) {
+    return "Origem bloqueada pelo backend. Verifique APP_URL/NEXT_PUBLIC_APP_URL e domínio da Vercel.";
+  }
   return raw;
 }
 
