@@ -54,12 +54,11 @@ export function useFaceTracking(videoRef: React.RefObject<HTMLVideoElement>) {
         setEngine("loading");
         const tasks = await import("@mediapipe/tasks-vision");
         const vision = await tasks.FilesetResolver.forVisionTasks(
-          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.32/wasm"
+          "/mediapipe/wasm"
         );
         detectorRef.current = await tasks.FaceDetector.createFromOptions(vision, {
           baseOptions: {
-            modelAssetPath:
-              "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite"
+            modelAssetPath: "/mediapipe/models/blaze_face_short_range.tflite"
           },
           runningMode: "VIDEO"
         } as any);

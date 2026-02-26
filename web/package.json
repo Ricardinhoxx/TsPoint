@@ -6,9 +6,9 @@
   },
   "scripts": {
     "clean": "node ./scripts/clean-next.mjs",
-    "predev": "node ./scripts/patch-next-recursive-delete.mjs",
+    "predev": "node ./scripts/patch-next-recursive-delete.mjs && node ./scripts/sync-mediapipe-assets.mjs",
     "dev": "next dev",
-    "prebuild": "node ./scripts/patch-next-recursive-delete.mjs",
+    "prebuild": "node ./scripts/patch-next-recursive-delete.mjs && node ./scripts/sync-mediapipe-assets.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
