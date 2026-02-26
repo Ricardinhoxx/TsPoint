@@ -1083,8 +1083,8 @@ video {
 }
 
 .presenceMonthCellPending {
-  border-color: #d97706;
-  background: #fffbeb;
+  border-color: #cbd5e1;
+  background: #ffffff;
 }
 
 .presenceMonthCellAbsent {
@@ -1122,6 +1122,7 @@ video {
 
 .presenceSquareGreen,
 .presenceSquareYellow,
+.presenceSquareWhite,
 .presenceSquareRed {
   width: 14px;
   height: 14px;
@@ -1135,6 +1136,11 @@ video {
 
 .presenceSquareYellow {
   background: #d97706;
+}
+
+.presenceSquareWhite {
+  background: #ffffff;
+  border: 1px solid #94a3b8;
 }
 
 .presenceSquareRed {

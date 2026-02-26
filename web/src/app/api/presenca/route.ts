@@ -20,6 +20,8 @@ type DayPersonItem = {
   funcionario_id: number;
   nome: string;
   status_day: DayStatus;
+  hora_entrada_prevista?: string | null;
+  hora_saida_prevista?: string | null;
   kind?: "FUNCIONARIO" | "DIARISTA";
 };
 
@@ -82,7 +84,7 @@ function rangeFromPeriod(period: Period, refDate: string): { start: string; end:
 }
 
 function deriveNoRecordStatus(day: string, today: string): "PENDING" | "ABSENT" {
-  return day >= today ? "PENDING" : "ABSENT";
+  return day > today ? "PENDING" : "ABSENT";
 }
 
 async function loadRanking(
@@ -239,12 +241,16 @@ export async function GET(req: Request) {
             id: number;
             nome: string;
             total: number;
+            hora_entrada_prevista: string | null;
+            hora_saida_prevista: string | null;
           }[]
         >`
           SELECT
             f.id,
             f.nome,
-            COALESCE(p.total, 0)::int AS total
+            COALESCE(p.total, 0)::int AS total,
+            TO_CHAR(f.hora_entrada_prevista, 'HH24:MI') as hora_entrada_prevista,
+            TO_CHAR(f.hora_saida_prevista, 'HH24:MI') as hora_saida_prevista
           FROM funcionario f
           LEFT JOIN (
             SELECT funcionario_id, COUNT(*)::int AS total
@@ -263,6 +269,8 @@ export async function GET(req: Request) {
             id: number;
             nome: string;
             total: number;
+            hora_entrada_prevista: string | null;
+            hora_saida_prevista: string | null;
           }[]
         >)
       : await (sql<
@@ -270,12 +278,16 @@ export async function GET(req: Request) {
             id: number;
             nome: string;
             total: number;
+            hora_entrada_prevista: string | null;
+            hora_saida_prevista: string | null;
           }[]
         >`
           SELECT
             f.id,
             f.nome,
-            COALESCE(p.total, 0)::int AS total
+            COALESCE(p.total, 0)::int AS total,
+            TO_CHAR(f.hora_entrada_prevista, 'HH24:MI') as hora_entrada_prevista,
+            TO_CHAR(f.hora_saida_prevista, 'HH24:MI') as hora_saida_prevista
           FROM funcionario f
           LEFT JOIN (
             SELECT funcionario_id, COUNT(*)::int AS total
@@ -292,6 +304,8 @@ export async function GET(req: Request) {
             id: number;
             nome: string;
             total: number;
+            hora_entrada_prevista: string | null;
+            hora_saida_prevista: string | null;
           }[]
         >);
 
@@ -326,6 +340,8 @@ export async function GET(req: Request) {
       funcionario_id: r.id,
       nome: r.nome,
       status_day: r.total > 0 ? "PRESENT" : deriveNoRecordStatus(selectedDay, today),
+      hora_entrada_prevista: r.hora_entrada_prevista,
+      hora_saida_prevista: r.hora_saida_prevista,
       kind: "FUNCIONARIO"
     }));
     for (const d of diaristasRows) {
@@ -419,7 +435,12 @@ export async function GET(req: Request) {
           present_count: presentCount,
           total_funcionarios: totalFuncionarios,
           total_registros: totalRegistros,
-          status_day: presentCount > 0 ? "PRESENT" : deriveNoRecordStatus(day, today)
+          status_day:
+            day > today
+              ? "PENDING"
+              : totalFuncionarios > 0 && presentCount === totalFuncionarios
+                ? "PRESENT"
+                : "ABSENT"
         });
       }
 

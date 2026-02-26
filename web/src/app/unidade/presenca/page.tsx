@@ -37,6 +37,8 @@ type DayPersonItem = {
   funcionario_id: number;
   nome: string;
   status_day: DayStatus;
+  hora_entrada_prevista?: string | null;
+  hora_saida_prevista?: string | null;
 };
 
 type PresenceApiResponse = {
@@ -90,7 +92,7 @@ function statusClass(status: DayStatus) {
 
 function statusLabel(status: DayStatus) {
   if (status === "PRESENT") return "Presente";
-  if (status === "PENDING") return "Pendente";
+  if (status === "PENDING") return "Próximo dia";
   return "Falta";
 }
 
@@ -102,7 +104,7 @@ function monthStatusClass(status: DayStatus) {
 
 function squareClass(status: DayStatus) {
   if (status === "PRESENT") return "presenceSquareGreen";
-  if (status === "PENDING") return "presenceSquareYellow";
+  if (status === "PENDING") return "presenceSquareWhite";
   return "presenceSquareRed";
 }
 
@@ -272,7 +274,7 @@ export default function PresencaPage() {
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as "ALL" | DayStatus)}>
             <option value="ALL">Todos</option>
             <option value="PRESENT">Presente</option>
-            <option value="PENDING">Pendente</option>
+            <option value="PENDING">Próximos dias</option>
             <option value="ABSENT">Falta</option>
           </select>
         </div>
@@ -291,11 +293,10 @@ export default function PresencaPage() {
           <h2 className="presencePanelTitle">Período</h2>
           <button type="button" className={period === "WEEK" ? "" : "secondary"} onClick={() => setPeriod("WEEK")}>Semana</button>
           <button type="button" className={period === "MONTH" ? "" : "secondary"} onClick={() => setPeriod("MONTH")}>Mês</button>
-          <button type="button" className={period === "YEAR" ? "" : "secondary"} onClick={() => setPeriod("YEAR")}>Ano</button>
 
           <div className="presenceStatusLegend">
             <div><span className="presenceSquareGreen" /> Presente</div>
-            <div><span className="presenceSquareYellow" /> Pendente</div>
+            <div><span className="presenceSquareWhite" /> Próximos dias</div>
             <div><span className="presenceSquareRed" /> Falta</div>
           </div>
         </aside>
@@ -390,7 +391,14 @@ export default function PresencaPage() {
           <h2 className="presencePanelTitle">{rightPanelMode === "DAY" ? "Lista do dia" : "Ranking de faltas"}</h2>
           {rightPanelMode === "DAY" && filteredDayPeople.map((p) => (
             <div key={p.funcionario_id} className="presenceRankingItem">
-              <span>{p.nome}</span>
+              <div>
+                <span>{p.nome}</span>
+                <div>
+                  <small className="muted">
+                    Entrada: {p.hora_entrada_prevista ?? "--:--"} | Saída: {p.hora_saida_prevista ?? "--:--"}
+                  </small>
+                </div>
+              </div>
               <span className={squareClass(p.status_day)} />
             </div>
           ))}
