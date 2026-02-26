@@ -27,16 +27,14 @@ function prettyError(err: unknown): string {
 }
 
 function resolveAuthRedirectOrigin(): string {
-  const appUrl = String(process.env.NEXT_PUBLIC_APP_URL ?? "").trim();
-  if (appUrl) {
-    try {
-      return new URL(appUrl).origin;
-    } catch {
-      // ignore invalid env format and fallback to current origin
-    }
-  }
   if (typeof window !== "undefined") return window.location.origin;
-  return "";
+  const appUrl = String(process.env.NEXT_PUBLIC_APP_URL ?? "").trim();
+  if (!appUrl) return "";
+  try {
+    return new URL(appUrl).origin;
+  } catch {
+    return "";
+  }
 }
 
 export default function LoginPage() {
