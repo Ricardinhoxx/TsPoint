@@ -19,7 +19,11 @@ function buildCsp() {
     "https://login.microsoftonline.com"
   ].filter(Boolean);
 
-  const scriptSrc = isProd ? ["'self'"] : ["'self'", "'unsafe-eval'"];
+  // Next.js injects inline bootstrapping scripts for hydration.
+  // Without nonce/hash wiring, blocking inline scripts can render a blank page.
+  const scriptSrc = isProd
+    ? ["'self'", "'unsafe-inline'"]
+    : ["'self'", "'unsafe-inline'", "'unsafe-eval'"];
 
   return [
     "default-src 'self'",
