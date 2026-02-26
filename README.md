@@ -83,3 +83,21 @@ npm run dev
 
 - Vercel: configure o Root Directory como `web/` e set envs (`DATABASE_URL`, `AUTH_SECRET`, `FACE_API_URL`, `FACE_API_SECRET`)
 - Fly.io: faça deploy do diretório `face-api/` e configure envs (`DATABASE_URL`, `INTERNAL_SECRET`, `FACE_THRESHOLD`)
+
+## OAuth auto-provision (security)
+
+To enable supervisor auto-provision via OAuth, configure both env vars explicitly:
+
+- `OAUTH_AUTO_PROVISION_ENABLED=true`
+- `OAUTH_AUTO_PROVISION_ALLOWED_DOMAIN=empresa.com`
+
+Without these values, OAuth auto-provision stays disabled.
+
+## Security monitoring (defensive)
+
+- Sensitive mutation routes now enforce same-origin checks and emit structured `[SECURITY]` logs.
+- Repeated blocked/failed events by IP and category trigger a `SUSPICIOUS_BURST` alert in logs.
+- Middleware blocks common scanner probe paths with `404` (`/.env`, `/.git/*`, `/wp-admin*`, `/phpmyadmin*`, `/server-status`).
+- Canary endpoint: `GET/POST/PUT/PATCH/DELETE /api/security/canary` always returns `404` and emits `CANARY_ENDPOINT_HIT`.
+
+Use these events in your SIEM/observability stack for alerting.

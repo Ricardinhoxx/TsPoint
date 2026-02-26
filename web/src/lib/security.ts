@@ -1,3 +1,5 @@
+import { recordSecuritySignal } from "@/lib/securityAudit";
+
 function firstHeaderValue(value: string | null): string {
   return String(value ?? "")
     .split(",")[0]
@@ -65,20 +67,70 @@ function isAllowedOrigin(urlRaw: string, allowedHosts: Set<string>, expectedProt
   return allowedHosts.has(parsed.host.toLowerCase());
 }
 
+type TrustedMutationOptions = {
+  allowWithoutOrigin?: boolean;
+  auditCategory?: string;
+};
+
 // Allows non-browser clients without Origin/Referer, but blocks cross-site browser requests.
-export function isTrustedMutationRequest(req: Request): boolean {
+export function isTrustedMutationRequest(req: Request, options: TrustedMutationOptions = {}): boolean {
+  const allowWithoutOrigin = options.allowWithoutOrigin ?? true;
+  const auditCategory = options.auditCategory ?? "MUTATION_ORIGIN_CHECK";
   const secFetchSite = firstHeaderValue(req.headers.get("sec-fetch-site")).toLowerCase();
-  if (secFetchSite === "cross-site") return false;
+  if (secFetchSite === "cross-site") {
+    recordSecuritySignal(req, {
+      category: auditCategory,
+      outcome: "blocked",
+      reason: "SEC_FETCH_SITE_CROSS_SITE",
+      severity: "high",
+      status: 403
+    });
+    return false;
+  }
 
   const allowedHosts = collectAllowedHosts(req);
   if (allowedHosts.size === 0) return false;
   const expectedProto = requestProto(req);
 
   const origin = firstHeaderValue(req.headers.get("origin"));
-  if (origin) return isAllowedOrigin(origin, allowedHosts, expectedProto);
+  if (origin) {
+    const allowed = isAllowedOrigin(origin, allowedHosts, expectedProto);
+    if (!allowed) {
+      recordSecuritySignal(req, {
+        category: auditCategory,
+        outcome: "blocked",
+        reason: "INVALID_ORIGIN",
+        severity: "high",
+        status: 403
+      });
+    }
+    return allowed;
+  }
 
   const referer = firstHeaderValue(req.headers.get("referer"));
-  if (referer) return isAllowedOrigin(referer, allowedHosts, expectedProto);
+  if (referer) {
+    const allowed = isAllowedOrigin(referer, allowedHosts, expectedProto);
+    if (!allowed) {
+      recordSecuritySignal(req, {
+        category: auditCategory,
+        outcome: "blocked",
+        reason: "INVALID_REFERER",
+        severity: "high",
+        status: 403
+      });
+    }
+    return allowed;
+  }
 
-  return true;
+  if (!allowWithoutOrigin) {
+    recordSecuritySignal(req, {
+      category: auditCategory,
+      outcome: "blocked",
+      reason: "ORIGIN_REFERER_REQUIRED",
+      severity: "medium",
+      status: 403
+    });
+  }
+
+  return allowWithoutOrigin;
 }

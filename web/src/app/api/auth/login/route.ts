@@ -5,6 +5,7 @@ import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
 import { getSql } from "@/lib/db";
 import { setSession } from "@/lib/auth";
 import { isTrustedMutationRequest } from "@/lib/security";
+import { recordSecuritySignal } from "@/lib/securityAudit";
 
 export const runtime = "nodejs";
 
@@ -338,8 +339,15 @@ async function resolveDefaultUnidadeId(sql: ReturnType<typeof getSql>): Promise<
 }
 
 function isAllowedEmailForAutoProvision(email: string): boolean {
+  const autoProvisionEnabled = String(process.env.OAUTH_AUTO_PROVISION_ENABLED ?? "")
+    .trim()
+    .toLowerCase();
+  if (!(autoProvisionEnabled === "1" || autoProvisionEnabled === "true" || autoProvisionEnabled === "yes")) {
+    return false;
+  }
+
   const allowedDomain = process.env.OAUTH_AUTO_PROVISION_ALLOWED_DOMAIN?.trim().toLowerCase();
-  if (!allowedDomain) return true;
+  if (!allowedDomain) return false;
   const normalizedDomain = allowedDomain.startsWith("@") ? allowedDomain : `@${allowedDomain}`;
   return email.endsWith(normalizedDomain);
 }
@@ -376,7 +384,7 @@ async function createOAuthSupervisor(sql: ReturnType<typeof getSql>, email: stri
 }
 
 export async function POST(req: Request) {
-  if (!isTrustedMutationRequest(req)) {
+  if (!isTrustedMutationRequest(req, { allowWithoutOrigin: false, auditCategory: "AUTH_LOGIN_ORIGIN" })) {
     return NextResponse.json({ error: "FORBIDDEN_ORIGIN" }, { status: 403 });
   }
 
@@ -409,6 +417,14 @@ export async function POST(req: Request) {
   const key = makeKey(req, tentativeIdentity);
   const limit = await checkLimit(key);
   if (limit.limited) {
+    recordSecuritySignal(req, {
+      category: "AUTH_LOGIN_RATE_LIMIT",
+      outcome: "blocked",
+      reason: "TOO_MANY_ATTEMPTS",
+      severity: "high",
+      status: 429,
+      subject: tentativeIdentity
+    });
     return NextResponse.json(
       { error: "TOO_MANY_ATTEMPTS", retry_after_sec: limit.retryAfterSec },
       {
@@ -463,18 +479,40 @@ export async function POST(req: Request) {
     const canAutoProvision = provider !== "LOCAL";
     if (!canAutoProvision) {
       await registerFailure(key);
+      recordSecuritySignal(req, {
+        category: "AUTH_LOGIN_FAILED",
+        outcome: "failed",
+        reason: "INVALID_CREDENTIALS",
+        status: 401,
+        subject: email
+      });
       return NextResponse.json({ error: "INVALID_CREDENTIALS" }, { status: 401 });
     }
 
     supervisor = await createOAuthSupervisor(sql, email);
     if (!supervisor) {
       await registerFailure(key);
+      recordSecuritySignal(req, {
+        category: "AUTH_AUTO_PROVISION_BLOCKED",
+        outcome: "blocked",
+        reason: "AUTO_PROVISION_FAILED",
+        severity: "high",
+        status: 403,
+        subject: email
+      });
       return NextResponse.json({ error: "AUTO_PROVISION_FAILED" }, { status: 403 });
     }
   }
 
   if (!supervisor) {
     await registerFailure(key);
+    recordSecuritySignal(req, {
+      category: "AUTH_LOGIN_FAILED",
+      outcome: "failed",
+      reason: "INVALID_CREDENTIALS",
+      status: 401,
+      subject: email
+    });
     return NextResponse.json({ error: "INVALID_CREDENTIALS" }, { status: 401 });
   }
 
@@ -482,6 +520,13 @@ export async function POST(req: Request) {
     const ok = await bcrypt.compare(password, supervisor.password_hash);
     if (!ok) {
       await registerFailure(key);
+      recordSecuritySignal(req, {
+        category: "AUTH_LOGIN_FAILED",
+        outcome: "failed",
+        reason: "INVALID_CREDENTIALS",
+        status: 401,
+        subject: email
+      });
       return NextResponse.json({ error: "INVALID_CREDENTIALS" }, { status: 401 });
     }
   }

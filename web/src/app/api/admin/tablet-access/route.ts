@@ -114,7 +114,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  if (!isTrustedMutationRequest(req)) {
+  if (!isTrustedMutationRequest(req, { allowWithoutOrigin: false, auditCategory: "ADMIN_TABLET_ACCESS_ORIGIN" })) {
     return NextResponse.json({ error: "FORBIDDEN_ORIGIN" }, { status: 403 });
   }
 
@@ -186,7 +186,7 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  if (!isTrustedMutationRequest(req)) {
+  if (!isTrustedMutationRequest(req, { allowWithoutOrigin: false, auditCategory: "ADMIN_TABLET_ACCESS_ORIGIN" })) {
     return NextResponse.json({ error: "FORBIDDEN_ORIGIN" }, { status: 403 });
   }
 
