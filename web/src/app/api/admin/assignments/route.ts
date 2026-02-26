@@ -19,12 +19,22 @@ type FuncionarioRow = {
   nome: string;
   unidade_id: number;
   status: string;
+  hora_entrada_prevista: string | null;
+  hora_saida_prevista: string | null;
 };
 
 function normalizeRole(raw: unknown): Role | null {
   const role = String(raw ?? "").trim().toUpperCase();
   if (role === "ADMIN" || role === "SUPERVISOR") return role;
   return null;
+}
+
+function parseTimeHHMM(raw: unknown): string | null {
+  if (raw === null || raw === undefined || raw === "") return null;
+  const v = String(raw).trim();
+  const m = v.match(/^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/);
+  if (!m) return null;
+  return `${m[1]}:${m[2]}`;
 }
 
 export async function GET(req: Request) {
@@ -90,7 +100,13 @@ export async function GET(req: Request) {
     unidadeId
       ? funcionarioSearch
         ? (sql<FuncionarioRow[]>`
-            SELECT id, nome, unidade_id, status
+            SELECT
+              id,
+              nome,
+              unidade_id,
+              status,
+              TO_CHAR(hora_entrada_prevista, 'HH24:MI') as hora_entrada_prevista,
+              TO_CHAR(hora_saida_prevista, 'HH24:MI') as hora_saida_prevista
             FROM funcionario
             WHERE unidade_id = ${unidadeId}
               AND nome ILIKE ${`%${funcionarioSearch}%`}
@@ -98,7 +114,13 @@ export async function GET(req: Request) {
             LIMIT ${pageSize} OFFSET ${offset}
           ` as unknown as Promise<FuncionarioRow[]>)
         : (sql<FuncionarioRow[]>`
-            SELECT id, nome, unidade_id, status
+            SELECT
+              id,
+              nome,
+              unidade_id,
+              status,
+              TO_CHAR(hora_entrada_prevista, 'HH24:MI') as hora_entrada_prevista,
+              TO_CHAR(hora_saida_prevista, 'HH24:MI') as hora_saida_prevista
             FROM funcionario
             WHERE unidade_id = ${unidadeId}
             ORDER BY nome ASC
@@ -106,14 +128,26 @@ export async function GET(req: Request) {
           ` as unknown as Promise<FuncionarioRow[]>)
       : funcionarioSearch
         ? (sql<FuncionarioRow[]>`
-            SELECT id, nome, unidade_id, status
+            SELECT
+              id,
+              nome,
+              unidade_id,
+              status,
+              TO_CHAR(hora_entrada_prevista, 'HH24:MI') as hora_entrada_prevista,
+              TO_CHAR(hora_saida_prevista, 'HH24:MI') as hora_saida_prevista
             FROM funcionario
             WHERE nome ILIKE ${`%${funcionarioSearch}%`}
             ORDER BY nome ASC
             LIMIT ${pageSize} OFFSET ${offset}
           ` as unknown as Promise<FuncionarioRow[]>)
         : (sql<FuncionarioRow[]>`
-            SELECT id, nome, unidade_id, status
+            SELECT
+              id,
+              nome,
+              unidade_id,
+              status,
+              TO_CHAR(hora_entrada_prevista, 'HH24:MI') as hora_entrada_prevista,
+              TO_CHAR(hora_saida_prevista, 'HH24:MI') as hora_saida_prevista
             FROM funcionario
             ORDER BY nome ASC
             LIMIT ${pageSize} OFFSET ${offset}
@@ -156,41 +190,99 @@ export async function PATCH(req: Request) {
         id?: number;
         unidade_id?: number;
         role?: string;
+        hora_entrada_prevista?: string | null;
+        hora_saida_prevista?: string | null;
       }
     | null;
 
   const entityType = String(body?.entity_type ?? "").toUpperCase();
   const id = parsePositiveInt(body?.id);
-  const unidadeId = parsePositiveInt(body?.unidade_id);
-  if (!id || !unidadeId) {
+  if (!id) {
     return NextResponse.json({ error: "INVALID_PARAMS" }, { status: 400 });
   }
+  const unidadeId = parsePositiveInt(body?.unidade_id);
 
   const sql = getSql();
-  const unidadeOk = await (sql<{ id: number }[]>`
-    SELECT id FROM unidade WHERE id = ${unidadeId} LIMIT 1
-  ` as unknown as Promise<{ id: number }[]>);
-  if (!unidadeOk[0]) {
-    return NextResponse.json({ error: "UNIDADE_NOT_FOUND" }, { status: 404 });
+  if (unidadeId) {
+    const unidadeOk = await (sql<{ id: number }[]>`
+      SELECT id FROM unidade WHERE id = ${unidadeId} LIMIT 1
+    ` as unknown as Promise<{ id: number }[]>);
+    if (!unidadeOk[0]) {
+      return NextResponse.json({ error: "UNIDADE_NOT_FOUND" }, { status: 404 });
+    }
   }
 
   try {
     return await sql.begin(async (tx: any) => {
       if (entityType === "FUNCIONARIO") {
-        const before = await (tx<{ id: number; unidade_id: number }[]>`
-          SELECT id, unidade_id FROM funcionario WHERE id = ${id} LIMIT 1
-        ` as unknown as Promise<{ id: number; unidade_id: number }[]>);
+        const horaEntrada =
+          body && "hora_entrada_prevista" in body ? parseTimeHHMM(body.hora_entrada_prevista) : undefined;
+        const horaSaida =
+          body && "hora_saida_prevista" in body ? parseTimeHHMM(body.hora_saida_prevista) : undefined;
+        if (body && "hora_entrada_prevista" in body && body.hora_entrada_prevista && !horaEntrada) {
+          return NextResponse.json({ error: "INVALID_HORA_ENTRADA" }, { status: 400 });
+        }
+        if (body && "hora_saida_prevista" in body && body.hora_saida_prevista && !horaSaida) {
+          return NextResponse.json({ error: "INVALID_HORA_SAIDA" }, { status: 400 });
+        }
+
+        const before = await (tx<{
+          id: number;
+          unidade_id: number;
+          hora_entrada_prevista: string | null;
+          hora_saida_prevista: string | null;
+        }[]>`
+          SELECT
+            id,
+            unidade_id,
+            TO_CHAR(hora_entrada_prevista, 'HH24:MI') as hora_entrada_prevista,
+            TO_CHAR(hora_saida_prevista, 'HH24:MI') as hora_saida_prevista
+          FROM funcionario
+          WHERE id = ${id}
+          LIMIT 1
+        ` as unknown as Promise<{
+          id: number;
+          unidade_id: number;
+          hora_entrada_prevista: string | null;
+          hora_saida_prevista: string | null;
+        }[]>);
         const current = before[0];
         if (!current) {
           return NextResponse.json({ error: "FUNCIONARIO_NOT_FOUND" }, { status: 404 });
         }
+        const nextUnidadeId = unidadeId ?? current.unidade_id;
+        const clearHoraEntrada = body && "hora_entrada_prevista" in body && body.hora_entrada_prevista === null;
+        const clearHoraSaida = body && "hora_saida_prevista" in body && body.hora_saida_prevista === null;
 
-        const updated = await (tx<{ id: number; unidade_id: number }[]>`
+        const updated = await (tx<{
+          id: number;
+          unidade_id: number;
+          hora_entrada_prevista: string | null;
+          hora_saida_prevista: string | null;
+        }[]>`
           UPDATE funcionario
-          SET unidade_id = ${unidadeId}
+          SET
+            unidade_id = ${nextUnidadeId},
+            hora_entrada_prevista = CASE
+              WHEN ${clearHoraEntrada} THEN NULL
+              ELSE COALESCE(${horaEntrada ? `${horaEntrada}:00` : null}::time, hora_entrada_prevista)
+            END,
+            hora_saida_prevista = CASE
+              WHEN ${clearHoraSaida} THEN NULL
+              ELSE COALESCE(${horaSaida ? `${horaSaida}:00` : null}::time, hora_saida_prevista)
+            END
           WHERE id = ${id}
-          RETURNING id, unidade_id
-        ` as unknown as Promise<{ id: number; unidade_id: number }[]>);
+          RETURNING
+            id,
+            unidade_id,
+            TO_CHAR(hora_entrada_prevista, 'HH24:MI') as hora_entrada_prevista,
+            TO_CHAR(hora_saida_prevista, 'HH24:MI') as hora_saida_prevista
+        ` as unknown as Promise<{
+          id: number;
+          unidade_id: number;
+          hora_entrada_prevista: string | null;
+          hora_saida_prevista: string | null;
+        }[]>);
 
         await (tx`
           INSERT INTO admin_assignment_audit (
@@ -206,7 +298,7 @@ export async function PATCH(req: Request) {
             'FUNCIONARIO',
             ${id},
             ${current.unidade_id},
-            ${unidadeId},
+            ${nextUnidadeId},
             ${null},
             ${null}
           )
@@ -216,6 +308,9 @@ export async function PATCH(req: Request) {
       }
 
       if (entityType === "SUPERVISOR") {
+        if (!unidadeId) {
+          return NextResponse.json({ error: "INVALID_PARAMS" }, { status: 400 });
+        }
         const role = normalizeRole(body?.role);
         if (!role) {
           return NextResponse.json({ error: "INVALID_ROLE" }, { status: 400 });

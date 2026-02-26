@@ -6,6 +6,7 @@ import { isTrustedMutationRequest } from "@/lib/security";
 export const runtime = "nodejs";
 
 type LocalTipo = "LOJA" | "ESCRITORIO" | "CD";
+type TimeHHMM = string;
 
 function parseTurno(raw: unknown): 1 | 2 | 3 | null {
   const n = Number(raw);
@@ -17,6 +18,14 @@ function parseLocalTipo(raw: unknown): LocalTipo | null {
   const v = String(raw ?? "").trim().toUpperCase();
   if (v === "LOJA" || v === "ESCRITORIO" || v === "CD") return v as LocalTipo;
   return null;
+}
+
+function parseTimeHHMM(raw: unknown): TimeHHMM | null {
+  if (raw === null || raw === undefined || raw === "") return null;
+  const v = String(raw).trim();
+  const m = v.match(/^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/);
+  if (!m) return null;
+  return `${m[1]}:${m[2]}`;
 }
 
 export async function GET(req: Request) {
@@ -44,6 +53,8 @@ export async function GET(req: Request) {
             unidade_id: number;
             unidade_nome: string;
             face_embeddings: number;
+            hora_entrada_prevista: string | null;
+            hora_saida_prevista: string | null;
           }[]
         >`
           SELECT
@@ -52,6 +63,8 @@ export async function GET(req: Request) {
             f.turno,
             f.local_tipo::text as local_tipo,
             f.status,
+            TO_CHAR(f.hora_entrada_prevista, 'HH24:MI') as hora_entrada_prevista,
+            TO_CHAR(f.hora_saida_prevista, 'HH24:MI') as hora_saida_prevista,
             f.unidade_id,
             u.nome AS unidade_nome,
             COALESCE(fe.embeddings, 0)::int as face_embeddings
@@ -74,6 +87,8 @@ export async function GET(req: Request) {
             unidade_id: number;
             unidade_nome: string;
             face_embeddings: number;
+            hora_entrada_prevista: string | null;
+            hora_saida_prevista: string | null;
           }[]
         >)
       : await (sql<
@@ -86,6 +101,8 @@ export async function GET(req: Request) {
             unidade_id: number;
             unidade_nome: string;
             face_embeddings: number;
+            hora_entrada_prevista: string | null;
+            hora_saida_prevista: string | null;
           }[]
         >`
           SELECT
@@ -94,6 +111,8 @@ export async function GET(req: Request) {
             f.turno,
             f.local_tipo::text as local_tipo,
             f.status,
+            TO_CHAR(f.hora_entrada_prevista, 'HH24:MI') as hora_entrada_prevista,
+            TO_CHAR(f.hora_saida_prevista, 'HH24:MI') as hora_saida_prevista,
             f.unidade_id,
             u.nome AS unidade_nome,
             COALESCE(fe.embeddings, 0)::int as face_embeddings
@@ -115,6 +134,8 @@ export async function GET(req: Request) {
             unidade_id: number;
             unidade_nome: string;
             face_embeddings: number;
+            hora_entrada_prevista: string | null;
+            hora_saida_prevista: string | null;
           }[]
         >);
 
@@ -145,6 +166,8 @@ export async function POST(req: Request) {
           turno?: 1 | 2 | 3 | number | string;
           local_tipo?: LocalTipo | string;
           unidade_id?: number | string;
+          hora_entrada_prevista?: string | null;
+          hora_saida_prevista?: string | null;
         }
       | null;
 
@@ -159,6 +182,14 @@ export async function POST(req: Request) {
     const localTipo = parseLocalTipo(body?.local_tipo);
     if (!localTipo) {
       return NextResponse.json({ error: "INVALID_LOCAL_TIPO" }, { status: 400 });
+    }
+    const horaEntrada = parseTimeHHMM(body?.hora_entrada_prevista);
+    const horaSaida = parseTimeHHMM(body?.hora_saida_prevista);
+    if (body && "hora_entrada_prevista" in body && body.hora_entrada_prevista && !horaEntrada) {
+      return NextResponse.json({ error: "INVALID_HORA_ENTRADA" }, { status: 400 });
+    }
+    if (body && "hora_saida_prevista" in body && body.hora_saida_prevista && !horaSaida) {
+      return NextResponse.json({ error: "INVALID_HORA_SAIDA" }, { status: 400 });
     }
 
     const isAdmin = isAdminSession(auth.session);
@@ -180,11 +211,31 @@ export async function POST(req: Request) {
         local_tipo: LocalTipo;
         unidade_id: number;
         status: string;
+        hora_entrada_prevista: string | null;
+        hora_saida_prevista: string | null;
       }[]
     >`
-      INSERT INTO funcionario (nome, turno, local_tipo, unidade_id, status)
-      VALUES (${nome}, ${turno}, ${localTipo}::local_tipo, ${unidadeId}, 'ATIVO')
-      RETURNING id, nome, turno, local_tipo::text as local_tipo, unidade_id, status
+      INSERT INTO funcionario (
+        nome, turno, local_tipo, unidade_id, status, hora_entrada_prevista, hora_saida_prevista
+      )
+      VALUES (
+        ${nome},
+        ${turno},
+        ${localTipo}::local_tipo,
+        ${unidadeId},
+        'ATIVO',
+        ${horaEntrada ? `${horaEntrada}:00` : null}::time,
+        ${horaSaida ? `${horaSaida}:00` : null}::time
+      )
+      RETURNING
+        id,
+        nome,
+        turno,
+        local_tipo::text as local_tipo,
+        unidade_id,
+        status,
+        TO_CHAR(hora_entrada_prevista, 'HH24:MI') as hora_entrada_prevista,
+        TO_CHAR(hora_saida_prevista, 'HH24:MI') as hora_saida_prevista
     ` as unknown as Promise<
       {
         id: number;
@@ -193,6 +244,8 @@ export async function POST(req: Request) {
         local_tipo: LocalTipo;
         unidade_id: number;
         status: string;
+        hora_entrada_prevista: string | null;
+        hora_saida_prevista: string | null;
       }[]
     >);
 
@@ -207,6 +260,159 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "DUPLICATE_KEY", ...(details ?? {}) }, { status: 409 });
     }
 
+    return NextResponse.json({ error: "DB_ERROR", ...(details ?? {}) }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: Request) {
+  if (!isTrustedMutationRequest(req)) {
+    return NextResponse.json({ error: "FORBIDDEN_ORIGIN" }, { status: 403 });
+  }
+
+  const auth = await requireAuth();
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: 401 });
+  }
+
+  try {
+    const body = (await req.json().catch(() => null)) as
+      | {
+          id?: number | string;
+          nome?: string;
+          turno?: 1 | 2 | 3 | number | string;
+          local_tipo?: LocalTipo | string;
+          hora_entrada_prevista?: string | null;
+          hora_saida_prevista?: string | null;
+          status?: string;
+        }
+      | null;
+
+    const funcionarioId = parsePositiveInt(body?.id);
+    if (!funcionarioId) {
+      return NextResponse.json({ error: "INVALID_FUNCIONARIO" }, { status: 400 });
+    }
+
+    const nome = body && "nome" in body ? String(body?.nome ?? "").trim() : undefined;
+    if (nome !== undefined && nome.length < 2) {
+      return NextResponse.json({ error: "INVALID_NOME" }, { status: 400 });
+    }
+
+    const turno = body && "turno" in body ? parseTurno(body?.turno) : undefined;
+    if (body && "turno" in body && !turno) {
+      return NextResponse.json({ error: "INVALID_TURNO" }, { status: 400 });
+    }
+
+    const localTipo = body && "local_tipo" in body ? parseLocalTipo(body?.local_tipo) : undefined;
+    if (body && "local_tipo" in body && !localTipo) {
+      return NextResponse.json({ error: "INVALID_LOCAL_TIPO" }, { status: 400 });
+    }
+
+    const horaEntrada =
+      body && "hora_entrada_prevista" in body
+        ? parseTimeHHMM(body?.hora_entrada_prevista)
+        : undefined;
+    const horaSaida =
+      body && "hora_saida_prevista" in body
+        ? parseTimeHHMM(body?.hora_saida_prevista)
+        : undefined;
+
+    if (body && "hora_entrada_prevista" in body && body.hora_entrada_prevista && !horaEntrada) {
+      return NextResponse.json({ error: "INVALID_HORA_ENTRADA" }, { status: 400 });
+    }
+    if (body && "hora_saida_prevista" in body && body.hora_saida_prevista && !horaSaida) {
+      return NextResponse.json({ error: "INVALID_HORA_SAIDA" }, { status: 400 });
+    }
+
+    const status = body && "status" in body ? String(body?.status ?? "").trim().toUpperCase() : undefined;
+    if (status !== undefined && status !== "ATIVO" && status !== "INATIVO") {
+      return NextResponse.json({ error: "INVALID_STATUS" }, { status: 400 });
+    }
+
+    if (
+      nome === undefined &&
+      turno === undefined &&
+      localTipo === undefined &&
+      horaEntrada === undefined &&
+      horaSaida === undefined &&
+      status === undefined &&
+      !(body && "hora_entrada_prevista" in body && body.hora_entrada_prevista === null) &&
+      !(body && "hora_saida_prevista" in body && body.hora_saida_prevista === null)
+    ) {
+      return NextResponse.json({ error: "EMPTY_UPDATE" }, { status: 400 });
+    }
+
+    const sql = getSql();
+    const isAdmin = isAdminSession(auth.session);
+    const allowedRows = isAdmin
+      ? await (sql<{ id: number }[]>`
+          SELECT id FROM funcionario WHERE id = ${funcionarioId} LIMIT 1
+        ` as unknown as Promise<{ id: number }[]>)
+      : await (sql<{ id: number }[]>`
+          SELECT id
+          FROM funcionario
+          WHERE id = ${funcionarioId}
+            AND unidade_id = ${auth.session.supervisor.unidade_id}
+          LIMIT 1
+        ` as unknown as Promise<{ id: number }[]>);
+
+    if (!allowedRows[0]) {
+      return NextResponse.json({ error: "FUNCIONARIO_FORBIDDEN" }, { status: 403 });
+    }
+
+    const clearHoraEntrada = body && "hora_entrada_prevista" in body && body.hora_entrada_prevista === null;
+    const clearHoraSaida = body && "hora_saida_prevista" in body && body.hora_saida_prevista === null;
+
+    const updated = await (sql<{
+      id: number;
+      nome: string;
+      turno: number;
+      local_tipo: LocalTipo;
+      unidade_id: number;
+      status: string;
+      hora_entrada_prevista: string | null;
+      hora_saida_prevista: string | null;
+    }[]>`
+      UPDATE funcionario
+      SET
+        nome = COALESCE(${nome ?? null}, nome),
+        turno = COALESCE(${turno ?? null}, turno),
+        local_tipo = COALESCE(${localTipo ?? null}::local_tipo, local_tipo),
+        hora_entrada_prevista = CASE
+          WHEN ${clearHoraEntrada} THEN NULL
+          ELSE COALESCE(${horaEntrada ? `${horaEntrada}:00` : null}::time, hora_entrada_prevista)
+        END,
+        hora_saida_prevista = CASE
+          WHEN ${clearHoraSaida} THEN NULL
+          ELSE COALESCE(${horaSaida ? `${horaSaida}:00` : null}::time, hora_saida_prevista)
+        END,
+        status = COALESCE(${status ?? null}, status)
+      WHERE id = ${funcionarioId}
+      RETURNING
+        id,
+        nome,
+        turno,
+        local_tipo::text as local_tipo,
+        unidade_id,
+        status,
+        TO_CHAR(hora_entrada_prevista, 'HH24:MI') as hora_entrada_prevista,
+        TO_CHAR(hora_saida_prevista, 'HH24:MI') as hora_saida_prevista
+    ` as unknown as Promise<{
+      id: number;
+      nome: string;
+      turno: number;
+      local_tipo: LocalTipo;
+      unidade_id: number;
+      status: string;
+      hora_entrada_prevista: string | null;
+      hora_saida_prevista: string | null;
+    }[]>);
+
+    return NextResponse.json({ funcionario: updated[0] });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    const code = (err as any)?.code;
+    const details = process.env.NODE_ENV === "production" ? undefined : { code, message };
+    console.error("[api/funcionarios][PATCH]", { code, message });
     return NextResponse.json({ error: "DB_ERROR", ...(details ?? {}) }, { status: 500 });
   }
 }

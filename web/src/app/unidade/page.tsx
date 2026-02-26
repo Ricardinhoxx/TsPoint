@@ -15,7 +15,20 @@ type Funcionario = {
   unidade_nome?: string;
   status: string;
   face_embeddings?: number;
+  hora_entrada_prevista?: string | null;
+  hora_saida_prevista?: string | null;
 };
+
+type PontoItem = {
+  id: number;
+  funcionario_id: number;
+  tipo: "ENTRADA" | "SAIDA";
+  timestamp: string;
+  score: number | null;
+  unidade_id: number;
+};
+
+type DiaristaTipo = "SUBSTITUICAO" | "DEMANDA";
 
 type Unidade = { id: number; nome: string };
 
@@ -39,6 +52,23 @@ export default function MinhaUnidadePage() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const [contextReady, setContextReady] = useState(false);
+  const [diaristaOpen, setDiaristaOpen] = useState(false);
+  const [diaristaNome, setDiaristaNome] = useState("");
+  const [diaristaTipo, setDiaristaTipo] = useState<DiaristaTipo>("SUBSTITUICAO");
+  const [diaristaSubstituidoId, setDiaristaSubstituidoId] = useState<number | null>(null);
+  const [diaristaObservacao, setDiaristaObservacao] = useState("");
+  const [diaristaResult, setDiaristaResult] = useState<string | null>(null);
+  const [savingDiarista, setSavingDiarista] = useState(false);
+  const [ajusteFuncionarioId, setAjusteFuncionarioId] = useState<number | null>(null);
+  const [ajusteDia, setAjusteDia] = useState<string>(() => toDateOnly(new Date()));
+  const [ajustePontos, setAjustePontos] = useState<PontoItem[]>([]);
+  const [ajusteLoading, setAjusteLoading] = useState(false);
+  const [ajusteError, setAjusteError] = useState<string | null>(null);
+  const [ajusteResult, setAjusteResult] = useState<string | null>(null);
+  const [editingPontoId, setEditingPontoId] = useState<number | null>(null);
+  const [editTipo, setEditTipo] = useState<"ENTRADA" | "SAIDA">("ENTRADA");
+  const [editTimestamp, setEditTimestamp] = useState("");
+  const [editMotivo, setEditMotivo] = useState("");
 
   const roleLabel = role === "ADMIN" ? "Administrador" : "Supervisor";
   const unidadeResponsavel = unidade?.nome ?? (role === "ADMIN" ? "Todas as unidades" : "Não definida");
@@ -62,6 +92,19 @@ export default function MinhaUnidadePage() {
       default:
         return code || "Erro ao reconhecer rosto.";
     }
+  }
+
+  function toDateOnly(d: Date): string {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  function toLocalDateTimeInput(rawIso: string): string {
+    const d = new Date(rawIso);
+    const offsetMs = d.getTimezoneOffset() * 60_000;
+    return new Date(d.getTime() - offsetMs).toISOString().slice(0, 16);
   }
 
   async function loadContext() {
@@ -166,6 +209,125 @@ export default function MinhaUnidadePage() {
     await loadFuncionarios().catch(() => null);
   }
 
+  useEffect(() => {
+    if (!funcionarios.length) {
+      setAjusteFuncionarioId(null);
+      return;
+    }
+    if (!ajusteFuncionarioId || !funcionarios.some((f) => f.id === ajusteFuncionarioId)) {
+      setAjusteFuncionarioId(funcionarios[0].id);
+    }
+  }, [funcionarios, ajusteFuncionarioId]);
+
+  async function registrarDiarista() {
+    const nome = diaristaNome.trim();
+    if (nome.length < 2) {
+      setDiaristaResult("Erro: informe o nome do diarista.");
+      return;
+    }
+    if (diaristaTipo === "SUBSTITUICAO" && !diaristaSubstituidoId) {
+      setDiaristaResult("Erro: selecione o colaborador substituído.");
+      return;
+    }
+
+    setSavingDiarista(true);
+    setDiaristaResult(null);
+    try {
+      const res = await fetch("/api/diaristas/presenca", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          nome_diarista: nome,
+          tipo: diaristaTipo,
+          funcionario_substituido_id: diaristaTipo === "SUBSTITUICAO" ? diaristaSubstituidoId : null,
+          observacao: diaristaObservacao.trim() || null
+        })
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
+      setDiaristaResult("Presença de diarista registrada com sucesso.");
+      setDiaristaNome("");
+      setDiaristaTipo("SUBSTITUICAO");
+      setDiaristaSubstituidoId(null);
+      setDiaristaObservacao("");
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : "Falha ao registrar diarista";
+      setDiaristaResult(`Erro: ${raw}`);
+    } finally {
+      setSavingDiarista(false);
+    }
+  }
+
+  async function carregarPontosAjuste() {
+    if (!ajusteFuncionarioId) return;
+    setAjusteLoading(true);
+    setAjusteError(null);
+    setAjusteResult(null);
+    setEditingPontoId(null);
+    try {
+      const res = await fetch(
+        `/api/ponto?funcionario_id=${ajusteFuncionarioId}&day=${encodeURIComponent(ajusteDia)}`
+      );
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
+      setAjustePontos(Array.isArray(data?.pontos) ? data.pontos : []);
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : "Falha ao carregar pontos";
+      setAjusteError(raw);
+      setAjustePontos([]);
+    } finally {
+      setAjusteLoading(false);
+    }
+  }
+
+  function iniciarEdicaoPonto(p: PontoItem) {
+    setEditingPontoId(p.id);
+    setEditTipo(p.tipo);
+    setEditTimestamp(toLocalDateTimeInput(p.timestamp));
+    setEditMotivo("");
+  }
+
+  async function salvarEdicaoPonto() {
+    if (!editingPontoId) return;
+    const timestampIso = editTimestamp ? new Date(editTimestamp).toISOString() : null;
+    const res = await fetch(`/api/ponto/${editingPontoId}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        tipo: editTipo,
+        timestamp: timestampIso,
+        motivo: editMotivo.trim() || null
+      })
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      setAjusteError(data?.error ?? `HTTP ${res.status}`);
+      return;
+    }
+    setAjusteResult("Ponto atualizado com sucesso.");
+    setEditingPontoId(null);
+    await carregarPontosAjuste();
+  }
+
+  async function excluirPonto(pontoId: number) {
+    const ok = window.confirm("Deseja excluir este registro de ponto?");
+    if (!ok) return;
+    const motivo = window.prompt("Motivo da exclusão (opcional):") ?? "";
+    const res = await fetch(`/api/ponto/${pontoId}`, {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ motivo })
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      setAjusteError(data?.error ?? `HTTP ${res.status}`);
+      return;
+    }
+    setAjusteResult("Ponto excluído com sucesso.");
+    if (editingPontoId === pontoId) setEditingPontoId(null);
+    await carregarPontosAjuste();
+  }
+
   function deleteErrorMessage(raw: unknown): string {
     const code = String(raw ?? "").trim().toUpperCase();
     switch (code) {
@@ -258,6 +420,9 @@ export default function MinhaUnidadePage() {
               <Link className="btnLink secondary" href="/unidade/presenca">
                 Presença
               </Link>
+              <button className="secondary" onClick={() => setDiaristaOpen(true)}>
+                Registrar diarista
+              </button>
               <button onClick={() => setCameraOpen(true)}>Registrar por câmera</button>
             </div>
           </div>
@@ -275,6 +440,7 @@ export default function MinhaUnidadePage() {
                 <tr>
                   <th>Nome</th>
                   <th>Turno</th>
+                  <th>Horário previsto</th>
                   <th>Loja (cadastro)</th>
                   <th>Status</th>
                   <th>Base facial</th>
@@ -286,6 +452,9 @@ export default function MinhaUnidadePage() {
                   <tr key={f.id}>
                     <td>{f.nome}</td>
                     <td>{f.turno}</td>
+                    <td>
+                      {(f.hora_entrada_prevista || "--:--")} - {(f.hora_saida_prevista || "--:--")}
+                    </td>
                     <td>
                       <span className="storeChip">{f.unidade_nome ?? "Loja não definida"}</span>{" "}
                       {role === "ADMIN" ? (
@@ -382,6 +551,131 @@ export default function MinhaUnidadePage() {
           ) : null}
         </div>
 
+        <div className="spacer" />
+
+        <div className="card">
+          <h2 style={{ marginTop: 0 }}>Ajuste manual de ponto</h2>
+          <div className="row" style={{ alignItems: "flex-end", flexWrap: "wrap" }}>
+            <div style={{ minWidth: 260, flex: 1 }}>
+              <label>Colaborador</label>
+              <select
+                value={ajusteFuncionarioId ? String(ajusteFuncionarioId) : ""}
+                onChange={(e) => setAjusteFuncionarioId(e.target.value ? Number(e.target.value) : null)}
+              >
+                <option value="">Selecione...</option>
+                {funcionarios.map((f) => (
+                  <option key={f.id} value={String(f.id)}>
+                    {f.nome}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label>Dia</label>
+              <input type="date" value={ajusteDia} onChange={(e) => setAjusteDia(e.target.value)} />
+            </div>
+            <button onClick={carregarPontosAjuste} disabled={!ajusteFuncionarioId || ajusteLoading}>
+              {ajusteLoading ? "Carregando..." : "Carregar pontos"}
+            </button>
+          </div>
+
+          {ajusteError ? (
+            <>
+              <div className="spacer" />
+              <div className="card" style={{ borderColor: "#8a1f1f" }}>
+                Erro: {ajusteError}
+              </div>
+            </>
+          ) : null}
+          {ajusteResult ? (
+            <>
+              <div className="spacer" />
+              <div className="card" style={{ borderColor: "#16a34a" }}>
+                {ajusteResult}
+              </div>
+            </>
+          ) : null}
+
+          <div className="spacer" />
+          <div className="tableShell">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Tipo</th>
+                  <th>Data/hora</th>
+                  <th>Score</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ajustePontos.length === 0 ? (
+                  <tr>
+                    <td colSpan={5}>Sem pontos para os filtros selecionados.</td>
+                  </tr>
+                ) : (
+                  ajustePontos.map((p) => (
+                    <tr key={p.id}>
+                      <td>{p.id}</td>
+                      <td>
+                        {editingPontoId === p.id ? (
+                          <select
+                            value={editTipo}
+                            onChange={(e) => setEditTipo(e.target.value as "ENTRADA" | "SAIDA")}
+                          >
+                            <option value="ENTRADA">ENTRADA</option>
+                            <option value="SAIDA">SAIDA</option>
+                          </select>
+                        ) : (
+                          p.tipo
+                        )}
+                      </td>
+                      <td>
+                        {editingPontoId === p.id ? (
+                          <input
+                            type="datetime-local"
+                            value={editTimestamp}
+                            onChange={(e) => setEditTimestamp(e.target.value)}
+                          />
+                        ) : (
+                          new Date(p.timestamp).toLocaleString()
+                        )}
+                      </td>
+                      <td>{p.score ?? "-"}</td>
+                      <td>
+                        <div className="row" style={{ gap: 8 }}>
+                          {editingPontoId === p.id ? (
+                            <>
+                              <input
+                                placeholder="Motivo (opcional)"
+                                value={editMotivo}
+                                onChange={(e) => setEditMotivo(e.target.value)}
+                              />
+                              <button onClick={salvarEdicaoPonto}>Salvar</button>
+                              <button className="secondary" onClick={() => setEditingPontoId(null)}>
+                                Cancelar
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button className="secondary" onClick={() => iniciarEdicaoPonto(p)}>
+                                Editar
+                              </button>
+                              <button className="secondary" onClick={() => excluirPonto(p.id)}>
+                                Excluir
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         {cameraOpen ? (
           <CameraModal
             onClose={() => setCameraOpen(false)}
@@ -392,6 +686,69 @@ export default function MinhaUnidadePage() {
             actionResult={pontoResult}
             role={role}
           />
+        ) : null}
+
+        {diaristaOpen ? (
+          <div className="modalBackdrop">
+            <div className="modalCard">
+              <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+                <h2 style={{ margin: 0 }}>Registrar presença de diarista</h2>
+                <button className="secondary" onClick={() => setDiaristaOpen(false)}>
+                  Fechar
+                </button>
+              </div>
+
+              <div className="spacer" />
+              <label>Nome do diarista</label>
+              <input value={diaristaNome} onChange={(e) => setDiaristaNome(e.target.value)} />
+
+              <div className="spacer" />
+              <label>Tipo de presença</label>
+              <select value={diaristaTipo} onChange={(e) => setDiaristaTipo(e.target.value as DiaristaTipo)}>
+                <option value="SUBSTITUICAO">Substituição</option>
+                <option value="DEMANDA">Demanda</option>
+              </select>
+
+              {diaristaTipo === "SUBSTITUICAO" ? (
+                <>
+                  <div className="spacer" />
+                  <label>Colaborador substituído</label>
+                  <select
+                    value={diaristaSubstituidoId ? String(diaristaSubstituidoId) : ""}
+                    onChange={(e) => setDiaristaSubstituidoId(e.target.value ? Number(e.target.value) : null)}
+                  >
+                    <option value="">Selecione...</option>
+                    {funcionarios.map((f) => (
+                      <option key={f.id} value={String(f.id)}>
+                        {f.nome}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              ) : null}
+
+              <div className="spacer" />
+              <label>Observação (opcional)</label>
+              <input value={diaristaObservacao} onChange={(e) => setDiaristaObservacao(e.target.value)} />
+
+              {diaristaResult ? (
+                <>
+                  <div className="spacer" />
+                  <div className="card">{diaristaResult}</div>
+                </>
+              ) : null}
+
+              <div className="spacer" />
+              <div className="row" style={{ justifyContent: "flex-end" }}>
+                <button className="secondary" onClick={() => setDiaristaOpen(false)}>
+                  Cancelar
+                </button>
+                <button onClick={registrarDiarista} disabled={savingDiarista}>
+                  {savingDiarista ? "Salvando..." : "Registrar diarista"}
+                </button>
+              </div>
+            </div>
+          </div>
         ) : null}
       </div>
     </div>

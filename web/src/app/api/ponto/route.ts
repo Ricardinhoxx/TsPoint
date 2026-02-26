@@ -8,6 +8,22 @@ export const runtime = "nodejs";
 
 type PontoTipo = "ENTRADA" | "SAIDA";
 
+function parseDateOnly(raw: string | null): string | null {
+  if (!raw) return null;
+  const v = raw.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
+  return v;
+}
+
+function addDays(dateOnly: string, days: number): string {
+  const d = new Date(`${dateOnly}T00:00:00`);
+  d.setDate(d.getDate() + days);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 function inferNextTipo(lastTipo: PontoTipo | null): PontoTipo {
   if (!lastTipo) return "ENTRADA";
   return lastTipo === "ENTRADA" ? "SAIDA" : "ENTRADA";
@@ -131,4 +147,79 @@ export async function POST(req: Request) {
       console.error("[api/ponto][POST] PONTO_WRITE_FAILED", msg);
       return NextResponse.json({ error: "PONTO_WRITE_FAILED" }, { status: 500 });
     });
+}
+
+export async function GET(req: Request) {
+  const auth = await requireAuth();
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(req.url);
+  const funcionarioId = Number(searchParams.get("funcionario_id"));
+  if (!Number.isFinite(funcionarioId) || funcionarioId <= 0) {
+    return NextResponse.json({ error: "INVALID_FUNCIONARIO" }, { status: 400 });
+  }
+
+  const day = parseDateOnly(searchParams.get("day"));
+  if (!day) {
+    return NextResponse.json({ error: "INVALID_DAY" }, { status: 400 });
+  }
+
+  const nextDay = addDays(day, 1);
+  const isAdmin = isAdminSession(auth.session);
+  const sql = getSql();
+
+  try {
+    const scopeRows = isAdmin
+      ? await (sql<{ id: number }[]>`
+          SELECT id FROM funcionario WHERE id = ${funcionarioId} LIMIT 1
+        ` as unknown as Promise<{ id: number }[]>)
+      : await (sql<{ id: number }[]>`
+          SELECT id
+          FROM funcionario
+          WHERE id = ${funcionarioId}
+            AND unidade_id = ${auth.session.supervisor.unidade_id}
+          LIMIT 1
+        ` as unknown as Promise<{ id: number }[]>);
+
+    if (!scopeRows[0]) {
+      return NextResponse.json({ error: "FUNCIONARIO_FORBIDDEN" }, { status: 403 });
+    }
+
+    const pontos = await (sql<{
+      id: number;
+      funcionario_id: number;
+      tipo: PontoTipo;
+      timestamp: string;
+      score: number | null;
+      unidade_id: number;
+    }[]>`
+      SELECT
+        p.id,
+        p.funcionario_id,
+        p.tipo::text as tipo,
+        p.timestamp::timestamptz::text as timestamp,
+        p.score,
+        p.unidade_id
+      FROM ponto p
+      WHERE p.funcionario_id = ${funcionarioId}
+        AND p.timestamp >= ${day}::date
+        AND p.timestamp < ${nextDay}::date
+      ORDER BY p.timestamp ASC, p.id ASC
+    ` as unknown as Promise<{
+      id: number;
+      funcionario_id: number;
+      tipo: PontoTipo;
+      timestamp: string;
+      score: number | null;
+      unidade_id: number;
+    }[]>);
+
+    return NextResponse.json({ pontos });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "UNKNOWN";
+    console.error("[api/ponto][GET] PONTO_READ_FAILED", msg);
+    return NextResponse.json({ error: "PONTO_READ_FAILED" }, { status: 500 });
+  }
 }

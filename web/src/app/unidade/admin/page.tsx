@@ -5,7 +5,14 @@ import { useEffect, useMemo, useState } from "react";
 
 type Unidade = { id: number; nome: string };
 type Supervisor = { id: number; email: string; role: "ADMIN" | "SUPERVISOR"; unidade_id: number };
-type Funcionario = { id: number; nome: string; status: string; unidade_id: number };
+type Funcionario = {
+  id: number;
+  nome: string;
+  status: string;
+  unidade_id: number;
+  hora_entrada_prevista: string | null;
+  hora_saida_prevista: string | null;
+};
 type TabletAccess = {
   id: number;
   unidade_id: number;
@@ -170,7 +177,9 @@ export default function AdminAssignmentsPage() {
         body: JSON.stringify({
           entity_type: "FUNCIONARIO",
           id: row.id,
-          unidade_id: row.unidade_id
+          unidade_id: row.unidade_id,
+          hora_entrada_prevista: row.hora_entrada_prevista,
+          hora_saida_prevista: row.hora_saida_prevista
         })
       });
       const data = await res.json().catch(() => null);
@@ -722,6 +731,8 @@ export default function AdminAssignmentsPage() {
               <tr>
                 <th>Nome</th>
                 <th>Status</th>
+                <th>Entrada prevista</th>
+                <th>Saída prevista</th>
                 <th>Loja atual</th>
                 <th>Nova loja</th>
                 <th>Ações</th>
@@ -730,17 +741,45 @@ export default function AdminAssignmentsPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5}>Carregando...</td>
+                  <td colSpan={7}>Carregando...</td>
                 </tr>
               ) : funcionarios.length === 0 ? (
                 <tr>
-                  <td colSpan={5}>Sem colaboradores.</td>
+                  <td colSpan={7}>Sem colaboradores.</td>
                 </tr>
               ) : (
                 funcionarios.map((f) => (
                   <tr key={f.id}>
                     <td>{f.nome}</td>
                     <td>{f.status}</td>
+                    <td>
+                      <input
+                        type="time"
+                        value={f.hora_entrada_prevista ?? ""}
+                        onChange={(e) => {
+                          const value = e.target.value || null;
+                          setFuncionarios((prev) =>
+                            prev.map((item) =>
+                              item.id === f.id ? { ...item, hora_entrada_prevista: value } : item
+                            )
+                          );
+                        }}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="time"
+                        value={f.hora_saida_prevista ?? ""}
+                        onChange={(e) => {
+                          const value = e.target.value || null;
+                          setFuncionarios((prev) =>
+                            prev.map((item) =>
+                              item.id === f.id ? { ...item, hora_saida_prevista: value } : item
+                            )
+                          );
+                        }}
+                      />
+                    </td>
                     <td>{unidadeMap.get(f.unidade_id) ?? `id=${f.unidade_id}`}</td>
                     <td>
                       <select

@@ -20,6 +20,7 @@ type DayPersonItem = {
   funcionario_id: number;
   nome: string;
   status_day: DayStatus;
+  kind?: "FUNCIONARIO" | "DIARISTA";
 };
 
 function parseDateOnly(raw: string | null): string | null {
@@ -294,11 +295,47 @@ export async function GET(req: Request) {
           }[]
         >);
 
+    const diaristasRows = scopeUnidadeId
+      ? await (sql<{
+          id: number;
+          nome_diarista: string;
+        }[]>`
+          SELECT id, nome_diarista
+          FROM diarista_presenca
+          WHERE unidade_id = ${scopeUnidadeId}
+            AND data_ref = ${selectedDay}::date
+          ORDER BY nome_diarista ASC
+        ` as unknown as Promise<{
+          id: number;
+          nome_diarista: string;
+        }[]>)
+      : await (sql<{
+          id: number;
+          nome_diarista: string;
+        }[]>`
+          SELECT id, nome_diarista
+          FROM diarista_presenca
+          WHERE data_ref = ${selectedDay}::date
+          ORDER BY nome_diarista ASC
+        ` as unknown as Promise<{
+          id: number;
+          nome_diarista: string;
+        }[]>);
+
     const day_people: DayPersonItem[] = dayPeopleRows.map((r) => ({
       funcionario_id: r.id,
       nome: r.nome,
-      status_day: r.total > 0 ? "PRESENT" : deriveNoRecordStatus(selectedDay, today)
+      status_day: r.total > 0 ? "PRESENT" : deriveNoRecordStatus(selectedDay, today),
+      kind: "FUNCIONARIO"
     }));
+    for (const d of diaristasRows) {
+      day_people.push({
+        funcionario_id: -Math.abs(d.id),
+        nome: `${d.nome_diarista} (diarista)`,
+        status_day: "PRESENT",
+        kind: "DIARISTA"
+      });
+    }
 
     if (!funcionarioId) {
       const totalRows = scopeUnidadeId
