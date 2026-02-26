@@ -16,6 +16,8 @@ type Funcionario = {
   local_tipo: LocalTipo;
   unidade_id: number;
   status: string;
+  hora_entrada_prevista?: string | null;
+  hora_saida_prevista?: string | null;
 };
 
 function friendlyErrorMessage(raw: unknown): string {
@@ -88,6 +90,8 @@ export default function CadastrarColaboradorPage() {
   const [nome, setNome] = useState("");
   const [turno, setTurno] = useState<1 | 2 | 3>(1);
   const [localTipo, setLocalTipo] = useState<LocalTipo>("LOJA");
+  const [horaEntradaPrevista, setHoraEntradaPrevista] = useState("");
+  const [horaSaidaPrevista, setHoraSaidaPrevista] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<Funcionario | null>(null);
@@ -147,7 +151,9 @@ export default function CadastrarColaboradorPage() {
           nome,
           turno,
           local_tipo: localTipo,
-          unidade_id: targetUnidadeId
+          unidade_id: targetUnidadeId,
+          hora_entrada_prevista: horaEntradaPrevista || null,
+          hora_saida_prevista: horaSaidaPrevista || null
         })
       });
       const data = await res.json().catch(() => null);
@@ -302,6 +308,22 @@ export default function CadastrarColaboradorPage() {
               </select>
             </div>
             <div style={{ flex: 1 }}>
+              <label>Entrada prevista (opcional)</label>
+              <input
+                type="time"
+                value={horaEntradaPrevista}
+                onChange={(e) => setHoraEntradaPrevista(e.target.value)}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label>Saída prevista (opcional)</label>
+              <input
+                type="time"
+                value={horaSaidaPrevista}
+                onChange={(e) => setHoraSaidaPrevista(e.target.value)}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
               <button type="submit" disabled={loading}>
                 {loading ? "Salvando..." : "Salvar colaborador"}
               </button>
@@ -327,7 +349,8 @@ export default function CadastrarColaboradorPage() {
                   <div>
                     Criado: <b>{created.nome}</b>{" "}
                     <small className="muted">
-                      (id={created.id}, turno={created.turno}, local={created.local_tipo})
+                      (id={created.id}, turno={created.turno}, local={created.local_tipo}, entrada=
+                      {created.hora_entrada_prevista ?? "--:--"}, saída={created.hora_saida_prevista ?? "--:--"})
                     </small>
                   </div>
                   <small className="muted">
