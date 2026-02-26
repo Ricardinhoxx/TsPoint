@@ -16,14 +16,16 @@ function buildCsp() {
     "'self'",
     supabaseOrigin,
     faceApiOrigin,
-    "https://login.microsoftonline.com"
+    "https://login.microsoftonline.com",
+    "https://cdn.jsdelivr.net",
+    "https://storage.googleapis.com"
   ].filter(Boolean);
 
   // Next.js injects inline bootstrapping scripts for hydration.
   // Without nonce/hash wiring, blocking inline scripts can render a blank page.
   const scriptSrc = isProd
-    ? ["'self'", "'unsafe-inline'"]
-    : ["'self'", "'unsafe-inline'", "'unsafe-eval'"];
+    ? ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"]
+    : ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net"];
 
   return [
     "default-src 'self'",
