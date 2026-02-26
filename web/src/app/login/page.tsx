@@ -26,6 +26,19 @@ function prettyError(err: unknown): string {
   return raw;
 }
 
+function resolveAuthRedirectOrigin(): string {
+  const appUrl = String(process.env.NEXT_PUBLIC_APP_URL ?? "").trim();
+  if (appUrl) {
+    try {
+      return new URL(appUrl).origin;
+    } catch {
+      // ignore invalid env format and fallback to current origin
+    }
+  }
+  if (typeof window !== "undefined") return window.location.origin;
+  return "";
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const hasProcessedSupabaseSession = useRef(false);
@@ -37,7 +50,7 @@ export default function LoginPage() {
     setError(null);
     try {
       const supabase = getSupabaseBrowserClient();
-      const redirectTo = `${window.location.origin}/login`;
+      const redirectTo = `${resolveAuthRedirectOrigin()}/login`;
       const { error: signInError } = await supabase.auth.signInWithOAuth({
         provider: "azure",
         options: { redirectTo }
