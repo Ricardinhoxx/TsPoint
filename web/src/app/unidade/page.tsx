@@ -690,7 +690,13 @@ export default function MinhaUnidadePage() {
 
         {diaristaOpen ? (
           <div className="modalBackdrop">
-            <div className="modalCard">
+            <div
+              className="modal"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Registrar presença de diarista"
+              style={{ width: "min(620px, 100%)", maxHeight: "calc(100vh - 48px)", overflowY: "auto" }}
+            >
               <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
                 <h2 style={{ margin: 0 }}>Registrar presença de diarista</h2>
                 <button className="secondary" onClick={() => setDiaristaOpen(false)}>
@@ -699,37 +705,42 @@ export default function MinhaUnidadePage() {
               </div>
 
               <div className="spacer" />
-              <label>Nome do diarista</label>
-              <input value={diaristaNome} onChange={(e) => setDiaristaNome(e.target.value)} />
+              <div style={{ display: "grid", gap: 12 }}>
+                <div>
+                  <label>Nome do diarista</label>
+                  <input value={diaristaNome} onChange={(e) => setDiaristaNome(e.target.value)} />
+                </div>
 
-              <div className="spacer" />
-              <label>Tipo de presença</label>
-              <select value={diaristaTipo} onChange={(e) => setDiaristaTipo(e.target.value as DiaristaTipo)}>
-                <option value="SUBSTITUICAO">Substituição</option>
-                <option value="DEMANDA">Demanda</option>
-              </select>
-
-              {diaristaTipo === "SUBSTITUICAO" ? (
-                <>
-                  <div className="spacer" />
-                  <label>Colaborador substituído</label>
-                  <select
-                    value={diaristaSubstituidoId ? String(diaristaSubstituidoId) : ""}
-                    onChange={(e) => setDiaristaSubstituidoId(e.target.value ? Number(e.target.value) : null)}
-                  >
-                    <option value="">Selecione...</option>
-                    {funcionarios.map((f) => (
-                      <option key={f.id} value={String(f.id)}>
-                        {f.nome}
-                      </option>
-                    ))}
+                <div>
+                  <label>Tipo de presença</label>
+                  <select value={diaristaTipo} onChange={(e) => setDiaristaTipo(e.target.value as DiaristaTipo)}>
+                    <option value="SUBSTITUICAO">Substituição</option>
+                    <option value="DEMANDA">Demanda</option>
                   </select>
-                </>
-              ) : null}
+                </div>
 
-              <div className="spacer" />
-              <label>Observação (opcional)</label>
-              <input value={diaristaObservacao} onChange={(e) => setDiaristaObservacao(e.target.value)} />
+                {diaristaTipo === "SUBSTITUICAO" ? (
+                  <div>
+                    <label>Colaborador substituído</label>
+                    <select
+                      value={diaristaSubstituidoId ? String(diaristaSubstituidoId) : ""}
+                      onChange={(e) => setDiaristaSubstituidoId(e.target.value ? Number(e.target.value) : null)}
+                    >
+                      <option value="">Selecione...</option>
+                      {funcionarios.map((f) => (
+                        <option key={f.id} value={String(f.id)}>
+                          {f.nome}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : null}
+
+                <div>
+                  <label>Observação (opcional)</label>
+                  <input value={diaristaObservacao} onChange={(e) => setDiaristaObservacao(e.target.value)} />
+                </div>
+              </div>
 
               {diaristaResult ? (
                 <>
