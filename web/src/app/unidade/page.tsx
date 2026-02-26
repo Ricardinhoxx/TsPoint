@@ -127,15 +127,16 @@ export default function MinhaUnidadePage() {
       return;
     }
 
-    setRole((u?.role === "ADMIN" ? "ADMIN" : "SUPERVISOR") as "ADMIN" | "SUPERVISOR");
-    setUnidade(u?.unidade ?? null);
+    const nextRole = (u?.role === "ADMIN" ? "ADMIN" : "SUPERVISOR") as "ADMIN" | "SUPERVISOR";
+    setRole(nextRole);
+    setUnidade(nextRole === "ADMIN" ? null : (u?.unidade ?? null));
     setContextReady(true);
   }
 
   const loadFuncionarios = useCallback(async () => {
     if (!contextReady) return;
 
-    const query = role === "ADMIN" && unidade?.id ? `?unidade_id=${unidade.id}` : "";
+    const query = role === "ADMIN" ? "" : unidade?.id ? `?unidade_id=${unidade.id}` : "";
     const fRes = await fetch(`/api/funcionarios${query}`);
     if (fRes.status === 401) {
       window.location.href = "/login";
