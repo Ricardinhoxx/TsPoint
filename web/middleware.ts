@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { jwtVerify } from "jose";
-import { logSecurityEvent } from "@/lib/securityAudit";
 
 function authSecretKey() {
   const secret = process.env.AUTH_SECRET;
@@ -20,7 +19,8 @@ function isSuspiciousProbePath(pathname: string): boolean {
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
   if (isSuspiciousProbePath(pathname)) {
-    logSecurityEvent({
+    console.warn("[SECURITY] " + JSON.stringify({
+      ts: new Date().toISOString(),
       category: "SCANNER_PROBE_PATH",
       outcome: "blocked",
       reason: "KNOWN_PROBE_PATH",
@@ -29,8 +29,8 @@ export async function middleware(req: NextRequest) {
       ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown",
       method: req.method,
       path: pathname,
-      userAgent: req.headers.get("user-agent")?.slice(0, 180) || undefined
-    });
+      user_agent: req.headers.get("user-agent")?.slice(0, 180) || null
+    }));
     return new NextResponse("Not Found", { status: 404 });
   }
 
