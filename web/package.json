@@ -11,7 +11,7 @@
     "prebuild": "node ./scripts/patch-next-recursive-delete.mjs && node ./scripts/sync-mediapipe-assets.mjs",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint src middleware.ts next.config.mjs jest.config.js jest.setup.ts --ext .js,.jsx,.ts,.tsx",
     "test": "jest --runInBand"
   },
   "dependencies": {

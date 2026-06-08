@@ -1,103 +1,164 @@
-# Digitaliza-Sodexo (MVP real-time)
+# Ts-manutenção Registro de ponto (MVP real-time)
 
-Arquitetura alvo (MVP real-time):
+Arquitetura alvo:
 
-- Vercel (`web/`, Next.js): UI + API “gateway” + autenticação/ACL
-- Fly.io (`face-api/`, FastAPI): microserviço de Face API sempre ligado (CPU)
-- Banco: Postgres (+ pgvector) para usuários/funcionários/unidades, embeddings e registros de ponto
+- Vercel (`web/`, Next.js): UI, API gateway, autenticacao e ACL.
+- Supabase Database: Postgres com `pgvector` para usuarios, funcionarios, unidades, embeddings e registros de ponto.
+- Supabase Auth: criacao/login de contas quando o fluxo usar Supabase.
+- Fly.io (`face-api/`, FastAPI): microservico de reconhecimento facial real sempre ligado em CPU.
+
+Ambiente atual de desenvolvimento: o banco ainda esta em Fly Managed Postgres e o app local acessa esse banco por proxy em `127.0.0.1:16380`. Esse banco Fly e temporario; a decisao de arquitetura e migrar o banco para Supabase Database.
+
+Estado operacional detalhado, pendencias e contexto para agentes: [`docs/AGENT_HANDOFF.md`](docs/AGENT_HANDOFF.md).
 
 ## Contratos JSON
 
 Gateway (Next.js):
 
-- `POST /api/auth/login` → `{ email, password }` → `200 { supervisor: { id, email, unidade_id, role } }`
-- `POST /api/auth/logout` → `204`
-- `GET /api/unidade/me` → `200 { unidade: { id, nome } }`
-- `GET /api/funcionarios` → `200 { funcionarios: [{ id, nome, status }] }` (sempre filtrado pela unidade do supervisor)
-- `POST /api/ponto` → `{ funcionario_id, tipo?: "ENTRADA"|"SAIDA", score?: number, device_info?: object }`
-  - Se `tipo` não vier, o backend infere o próximo (toggle) e valida regras.
-- `POST /api/face/recognize` → `{ image_b64 }` → `200 { matched, funcionario_id?, nome?, score? }`
-- `POST /api/face/enroll` → `{ funcionario_id, images_b64: string[] }` → `200 { ok: true, inserted: number }`
+- `POST /api/auth/login` -> `{ email, password }` -> `200 { supervisor: { id, email, unidade_id, role } }`
+- `POST /api/auth/logout` -> `204`
+- `GET /api/unidade/me` -> `200 { unidade: { id, nome } }`
+- `GET /api/funcionarios` -> `200 { funcionarios: [{ id, nome, status }] }`
+- `POST /api/ponto` -> `{ funcionario_id, tipo?: "ENTRADA"|"SAIDA", score?: number, device_info?: object }`
+  - Se `tipo` nao vier, o backend infere o proximo tipo e valida as regras.
+- `POST /api/face/recognize` -> `{ image_b64 }` -> `200 { matched, funcionario_id?, nome?, score? }`
+- `POST /api/face/enroll` -> `{ funcionario_id, images_b64: string[] }` -> `200 { ok: true, inserted: number }`
 
 Face API (FastAPI):
 
-- `GET /health` → `200 { ok: true }`
-- `POST /recognize` → `{ unidade_id, image_b64 }` → `{ matched, funcionario_id?, nome?, score? }`
-- `POST /enroll` → `{ funcionario_id, images_b64 }` → `{ ok: true, inserted }`
+- `GET /health` -> `200 { ok: true }`
+- `POST /recognize` -> `{ unidade_id, image_b64 }` -> `{ matched, funcionario_id?, nome?, score? }`
+- `POST /enroll` -> `{ funcionario_id, images_b64 }` -> `{ ok: true, inserted }`
 
-As chamadas Vercel → Fly usam header `X-Internal-Secret` (config em env).
+As chamadas Vercel -> Fly usam o header `X-Internal-Secret`.
 
-## Banco (Postgres + pgvector)
+## Banco
 
-DDL: `db/migrations/001_init.sql`.
-
-Regras mínimas implementadas no gateway:
-
-- Supervisor só vê/gera ponto da própria unidade (ACL por `unidade_id`)
-- Entrada/Saída: bloqueia ponto com mesmo tipo do último (toggle obrigatório)
-- Auditoria: persiste `score`, `operador_id` e `device_info`
-
-## Rodar local (dev)
-
-1) Subir Postgres:
+O banco de producao deve ser Supabase Database com a extensao `vector`/pgvector habilitada. Aplique as migrations em ordem usando a `DATABASE_URL` do Postgres do Supabase:
 
 ```powershell
-docker compose -f db/docker-compose.yml up -d
-```
-
-2) Aplicar migração:
-
-```powershell
-$env:DATABASE_URL = "postgres://app:app@localhost:5432/digitaliza"
+$env:DATABASE_URL = "postgresql://postgres:<senha>@<host-supabase>:5432/postgres?sslmode=require"
 psql $env:DATABASE_URL -f db/migrations/001_init.sql
 psql $env:DATABASE_URL -f db/migrations/002_funcionario_turno_local.sql
+psql $env:DATABASE_URL -f db/migrations/003_admin_assignment_audit.sql
+psql $env:DATABASE_URL -f db/migrations/004_presence_perf_indexes.sql
+psql $env:DATABASE_URL -f db/migrations/005_auth_login_rate_limit.sql
+psql $env:DATABASE_URL -f db/migrations/006_tablet_access.sql
+psql $env:DATABASE_URL -f db/migrations/007_horario_diarista_ponto_audit.sql
 ```
 
-2.1) Seed (dev):
+Regras principais implementadas no gateway:
+
+- Supervisor so ve e registra ponto da propria unidade.
+- Admin pode operar globalmente onde as rotas permitem.
+- Entrada/Saida bloqueia ponto com mesmo tipo do ultimo registro.
+- Auditoria persiste `score`, `operador_id` e `device_info`.
+
+## Rodar Local
+
+Guia completo de inicializacao: [`docs/START.md`](docs/START.md).
+
+1. Configurar o banco.
+
+Destino recomendado: usar a `DATABASE_URL` do Supabase Database com `sslmode=require`.
+
+Temporario neste workspace: abrir o proxy para o Fly Managed Postgres enquanto a migracao para Supabase nao for concluida:
 
 ```powershell
-psql $env:DATABASE_URL -f db/seed_dev.sql
+flyctl mpg proxy 3x9jv02y6lpr6qp7 --local-port 16380
 ```
 
-3) Subir o `face-api/`:
+2. Confirmar que `web/.env.local` aponta para o banco escolhido.
+
+Supabase Database:
+
+```powershell
+DATABASE_URL=postgresql://postgres:<senha>@<host-supabase>:5432/postgres?sslmode=require
+```
+
+Fly temporario:
+
+```powershell
+DATABASE_URL=postgres://fly-user:<senha>@127.0.0.1:16380/fly-db
+```
+
+3. Subir o `web/`:
+
+```powershell
+cd web
+npm ci
+npm run dev -- --hostname 127.0.0.1 --port 3000
+```
+
+4. Acessar:
+
+```txt
+http://127.0.0.1:3000/login
+```
+
+Contas locais de desenvolvimento:
+
+```txt
+demo@empresa.com / admin123
+admin@empresa.com / admin123
+```
+
+5. Subir o `face-api/`, quando for testar reconhecimento facial:
 
 ```powershell
 cd face-api
 python -m venv .venv
-.\\.venv\\Scripts\\Activate.ps1
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 copy .env.example .env
 uvicorn app.main:app --host 0.0.0.0 --port 8080
 ```
 
-4) Subir o `web/`:
+## Validacao
 
 ```powershell
 cd web
-npm i
-copy .env.example .env.local
-npm run dev
+npm test
+npm run lint
+npm run build
 ```
 
-## Deploy (resumo)
+Para testar o pipeline completo, suba Postgres, Face API e Next.js, cadastre base facial para um funcionario e registre um ponto pelo fluxo de camera ou tablet.
 
-- Vercel: configure o Root Directory como `web/` e set envs (`DATABASE_URL`, `AUTH_SECRET`, `FACE_API_URL`, `FACE_API_SECRET`)
-- Fly.io: faça deploy do diretório `face-api/` e configure envs (`DATABASE_URL`, `INTERNAL_SECRET`, `FACE_THRESHOLD`)
+## Deploy
 
-## OAuth auto-provision (security)
+- Vercel: configure o Root Directory como `web/` e set envs `DATABASE_URL` do Supabase, `AUTH_SECRET`, `FACE_API_URL`, `FACE_API_SECRET` e envs do Supabase Auth.
+- Supabase: habilite `vector`, aplique migrations e mantenha Auth/Database no mesmo projeto ou em projetos documentados.
+- Fly.io: faca deploy do diretorio `face-api/` e set envs `DATABASE_URL` do Supabase, `INTERNAL_SECRET`, `FACE_THRESHOLD`, `FACE_MODEL`.
+- Producao nunca deve usar `FACE_FAKE_MODE=1`; esse modo existe apenas para testar o pipeline.
 
-To enable supervisor auto-provision via OAuth, configure both env vars explicitly:
+## Login
+
+Na aba `Entrar`, o app usa login local pela rota `/api/auth/login` com os supervisores da tabela `supervisor`.
+
+Na aba `Criar conta`, o app usa Supabase Auth com email/senha. Configure no ambiente:
+
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+Apos um login Supabase valido, o app cria a sessao interna e pode auto-provisionar o supervisor conforme as envs `OAUTH_AUTO_PROVISION_*`.
+
+## OAuth Auto-Provision
+
+Para habilitar criacao automatica de supervisores via OAuth, configure explicitamente:
 
 - `OAUTH_AUTO_PROVISION_ENABLED=true`
 - `OAUTH_AUTO_PROVISION_ALLOWED_DOMAIN=empresa.com`
 
-Without these values, OAuth auto-provision stays disabled.
+Sem essas variaveis, o auto-provision fica desabilitado.
 
-## Security monitoring (defensive)
+## Monitoramento De Seguranca
 
-- Sensitive mutation routes now enforce same-origin checks and emit structured `[SECURITY]` logs.
-- Repeated blocked/failed events by IP and category trigger a `SUSPICIOUS_BURST` alert in logs.
-- Middleware blocks common scanner probe paths with `404` (`/.env`, `/.git/*`, `/wp-admin*`, `/phpmyadmin*`, `/server-status`).
-- Canary endpoint: `GET/POST/PUT/PATCH/DELETE /api/security/canary` always returns `404` and emits `CANARY_ENDPOINT_HIT`.
+- Rotas sensiveis de mutacao validam origem e emitem logs estruturados `[SECURITY]`.
+- Eventos bloqueados/falhos repetidos por IP e categoria geram alerta `SUSPICIOUS_BURST`.
+- O middleware bloqueia probes comuns com `404`: `/.env`, `/.git/*`, `/wp-admin*`, `/phpmyadmin*`, `/server-status`.
+- Canary endpoint: `GET/POST/PUT/PATCH/DELETE /api/security/canary` sempre retorna `404` e emite `CANARY_ENDPOINT_HIT`.
 
-Use these events in your SIEM/observability stack for alerting.
+Use esses eventos no seu SIEM ou stack de observabilidade.

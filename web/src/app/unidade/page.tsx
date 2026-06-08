@@ -411,7 +411,7 @@ export default function MinhaUnidadePage() {
             <div className="row">
               <div className="brandLockup" aria-label="Bemol">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img className="brandLogo brandLogoBemol" src="/brand/bemol-logo.svg" alt="Bemol" />
+                <img className="brandLogo brandLogoApp" src="/brand/app-logo-highlight.png" alt="Digitaliza Sodexo" />
               </div>
 
               <button className="secondary" onClick={logout}>

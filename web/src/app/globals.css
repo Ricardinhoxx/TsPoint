@@ -31,6 +31,7 @@
   --color-primary: #0b4ddb;
   --color-primary-contrast: #ffffff;
   --color-focus-ring: rgba(11, 77, 219, 0.35);
+  --color-brand-dark: #1d283f;
   --radius-0: 0;
 }
 
@@ -56,12 +57,14 @@ h2 {
 }
 
 .container {
+  width: 100%;
   max-width: 960px;
   margin: 0 auto;
   padding: 24px;
 }
 
 .containerWide {
+  width: 100%;
   max-width: 1120px;
   margin: 0 auto;
   padding: 24px;
@@ -225,7 +228,9 @@ video {
   margin: 0;
   border-radius: 0;
   border: none !important;
-  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.16);
+  background: var(--color-brand-dark);
+  color: #ffffff;
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.24);
   animation: authFadeSlide 220ms ease-out both;
   animation-delay: 90ms;
   text-align: center;
@@ -235,9 +240,7 @@ video {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(1200px 500px at 10% -20%, rgba(11, 77, 219, 0.18), rgba(11, 77, 219, 0)),
-    radial-gradient(800px 400px at 95% 110%, rgba(16, 185, 129, 0.14), rgba(16, 185, 129, 0)),
-    linear-gradient(180deg, #f5f7fb 0%, #e8edf8 100%);
+    linear-gradient(180deg, rgba(29, 40, 63, 0.96) 0%, rgba(29, 40, 63, 1) 100%);
 }
 
 .authLayout {
@@ -248,6 +251,7 @@ video {
   gap: 18px;
   align-items: center;
   justify-items: center;
+  width: 100%;
   max-width: 760px;
   margin: 0 auto;
 }
@@ -256,10 +260,11 @@ video {
   border: none !important;
   border-radius: 0;
   padding: 32px 28px;
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--color-brand-dark);
+  color: #ffffff;
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
-  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.16);
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.24);
   animation: authFadeSlide 220ms ease-out both;
   width: 100%;
   max-width: 760px;
@@ -270,10 +275,10 @@ video {
   display: inline-flex;
   align-items: center;
   gap: 14px;
-  background: #ffffff;
+  background: transparent;
   border: none;
   border-radius: 0;
-  padding: 10px 14px;
+  padding: 0;
   margin: 0 auto;
 }
 
@@ -287,7 +292,7 @@ video {
 .authSubtitle {
   margin: 16px 0 0;
   max-width: 46ch;
-  color: #334155;
+  color: rgba(255, 255, 255, 0.82);
   line-height: 1.55;
   margin-left: auto;
   margin-right: auto;
@@ -302,14 +307,63 @@ video {
 
 .authCardSubtitle {
   margin: 8px 0 0;
-  color: #475569;
+  color: rgba(255, 255, 255, 0.78);
   line-height: 1.5;
   font-size: 16px;
 }
 
-.authMicrosoftBtn {
+.authModeSwitch {
   width: min(100%, 360px);
   margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.authModeSwitch button {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  font-weight: 600;
+}
+
+.authModeSwitch button.active {
+  background: #ffffff;
+  color: var(--color-brand-dark);
+}
+
+.authForm {
+  width: min(100%, 360px);
+  margin: 0 auto;
+  display: grid;
+  gap: 14px;
+}
+
+.authField {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  text-align: left;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.authField span {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.authField input {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+.authField input:disabled {
+  opacity: 0.72;
+}
+
+.authSubmitBtn {
+  width: 100%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -318,13 +372,15 @@ video {
   border-radius: 0;
   padding: 16px 14px;
   border: none;
+  background: #ffffff;
+  color: var(--color-brand-dark);
 }
 
-.authMicrosoftBtn:hover:not(:disabled) {
+.authSubmitBtn:hover:not(:disabled) {
   filter: brightness(1.06);
 }
 
-.authMicrosoftBtn:disabled {
+.authSubmitBtn:disabled {
   cursor: not-allowed;
   opacity: 0.82;
 }
@@ -342,7 +398,7 @@ video {
   display: block;
   line-height: 1.5;
   opacity: 1;
-  color: #475569;
+  color: rgba(255, 255, 255, 0.78);
 }
 
 .authErrorCard {
@@ -351,20 +407,26 @@ video {
   color: #991b1b;
 }
 
+.authInfoCard {
+  border: none;
+  background: #ecfdf5;
+  color: #065f46;
+}
+
 .authAccent {
-  color: #0b4ddb;
+  color: #ffffff;
   font-weight: 700;
 }
 
 .authStackDivider {
   width: 56px;
   height: 2px;
-  background: rgba(11, 77, 219, 0.35);
+  background: rgba(255, 255, 255, 0.4);
 }
 
 .authCard small.muted {
   opacity: 1;
-  color: #475569;
+  color: rgba(255, 255, 255, 0.78);
 }
 
 .hero {
@@ -421,6 +483,17 @@ video {
   width: auto;
 }
 
+.brandLogoApp {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.authBrand .brandLogoApp {
+  width: 96px;
+  height: 96px;
+}
+
 .brandLogoSodexo {
   height: 34px;
   width: auto;
@@ -470,6 +543,51 @@ video {
 
   .authCard {
     max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .authPage {
+    align-items: flex-start;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  .authLayout {
+    gap: 14px;
+    padding: 16px;
+  }
+
+  .authIntro,
+  .authCard {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .authIntro {
+    padding: 24px 18px;
+  }
+
+  .authCard {
+    padding: 18px;
+  }
+
+  .authBrand .brandLogoApp {
+    width: 76px;
+    height: 76px;
+  }
+
+  .authTitle {
+    font-size: 28px;
+  }
+
+  .authSubtitle,
+  .authCardSubtitle {
+    overflow-wrap: anywhere;
+  }
+
+  .authCardTitle {
+    font-size: 40px;
   }
 }
 

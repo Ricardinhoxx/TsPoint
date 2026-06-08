@@ -62,7 +62,7 @@ def _load_face_engine():
   # Lazy import so devs can still run in FAKE mode without heavy deps.
   from insightface.app import FaceAnalysis  # type: ignore
 
-  model = os.getenv("FACE_MODEL", "buffalo_s")
+  model = os.getenv("FACE_MODEL", "buffalo_l")
   det = os.getenv("FACE_DET_SIZE", "640").strip()
   try:
     det_size = int(det)
@@ -115,7 +115,7 @@ def image_to_embedding(image_bytes: bytes) -> np.ndarray:
       engine = _load_face_engine()
       app.state.face_engine = engine
     except Exception as exc:
-      model = os.getenv("FACE_MODEL", "buffalo_s")
+      model = os.getenv("FACE_MODEL", "buffalo_l")
       attempted = bool(getattr(app.state, "face_engine_recovery_attempted", False))
       if not attempted and _looks_like_corrupt_model_error(exc):
         app.state.face_engine_recovery_attempted = True

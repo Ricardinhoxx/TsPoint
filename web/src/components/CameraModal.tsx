@@ -12,6 +12,28 @@ type Match = {
   unidade_nome?: string | null;
 };
 
+function cameraErrorMessage(raw: unknown): string {
+  if (typeof window !== "undefined" && !window.isSecureContext) {
+    return "A camera do celular exige HTTPS ou localhost. Em acesso por IP http, o navegador pode bloquear a permissao.";
+  }
+
+  if (raw instanceof DOMException) {
+    switch (raw.name) {
+      case "NotAllowedError":
+      case "SecurityError":
+        return "Permissao da camera bloqueada. Libere o acesso no navegador.";
+      case "NotFoundError":
+        return "Nenhuma camera foi encontrada neste dispositivo.";
+      case "NotReadableError":
+        return "A camera esta em uso por outro app.";
+      default:
+        return raw.message || "Falha ao acessar camera.";
+    }
+  }
+
+  return raw instanceof Error ? raw.message : "Falha ao acessar camera.";
+}
+
 export default function CameraModal({
   onClose,
   onCapture,
@@ -49,7 +71,7 @@ export default function CameraModal({
         streamRef.current = stream;
         if (videoRef.current) videoRef.current.srcObject = stream;
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Falha ao acessar camera");
+        setError(cameraErrorMessage(err));
       }
     }
     start().catch(() => null);

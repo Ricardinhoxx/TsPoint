@@ -4,14 +4,25 @@
 .venv
 __pycache__/
 *.pyc
+*.log
 
 web/node_modules/
 web/.next/
 web/out/
 web/.env.local
+web/dev-server*.log
+web/next-dev*.log
 
 face-api/.env
 face-api/.venv/
+face-api/*.log
 
 db/postgres_data/
+
+mobile-login*.png
+viewport-test.html
+chrome-shot.err.log
+edge-shot.err.log
+cloudflared*.log
+fly-mpg-proxy*.log
 

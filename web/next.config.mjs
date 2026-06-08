@@ -27,7 +27,7 @@ function buildCsp() {
     ? ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'", "https://cdn.jsdelivr.net"]
     : ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net"];
 
-  return [
+  const directives = [
     "default-src 'self'",
     `script-src ${scriptSrc.join(" ")}`,
     "style-src 'self' 'unsafe-inline'",
@@ -38,9 +38,12 @@ function buildCsp() {
     "frame-ancestors 'none'",
     "object-src 'none'",
     "base-uri 'self'",
-    "form-action 'self'",
-    "upgrade-insecure-requests"
-  ].join("; ");
+    "form-action 'self'"
+  ];
+
+  if (isProd) directives.push("upgrade-insecure-requests");
+
+  return directives.join("; ");
 }
 
 /** @type {import('next').NextConfig} */
@@ -67,7 +70,9 @@ const nextConfig = {
           { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=()" },
           { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
           { key: "Cross-Origin-Resource-Policy", value: "same-site" },
-          { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains; preload" }
+          ...(process.env.NODE_ENV === "production"
+            ? [{ key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains; preload" }]
+            : [])
         ]
       }
     ];

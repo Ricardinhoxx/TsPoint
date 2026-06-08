@@ -1,6 +1,7 @@
 ﻿import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
+import { createClient } from "@supabase/supabase-js";
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
 import { getSql } from "@/lib/db";
 import { setSession } from "@/lib/auth";
@@ -16,7 +17,7 @@ const AZURE_PROVIDER = "AZURE_ENTRA";
 const MSFT_OPENID_BASE = "https://login.microsoftonline.com";
 const OAUTH_PLACEHOLDER_PASSWORD_PREFIX = "oauth-only:";
 
-type LoginProvider = "LOCAL" | "AZURE_ENTRA" | "SUPABASE_AZURE";
+type LoginProvider = "LOCAL" | "AZURE_ENTRA" | "SUPABASE_OAUTH";
 
 type AttemptStatus = {
   limited: boolean;
@@ -57,8 +58,16 @@ function makeKey(req: Request, email: string): string {
 
 function normalizeProvider(raw: unknown): LoginProvider {
   const provider = String(raw ?? "").trim().toUpperCase();
-  if (provider === "SUPABASE" || provider === "SUPABASE_AZURE") {
-    return "SUPABASE_AZURE";
+  if (
+    provider === "SUPABASE" ||
+    provider === "SUPABASE_OAUTH" ||
+    provider === "SUPABASE_AZURE" ||
+    provider === "SUPABASE_GOOGLE" ||
+    provider === "SUPABASE_PASSWORD" ||
+    provider === "SUPABASE_EMAIL" ||
+    provider === "GOOGLE"
+  ) {
+    return "SUPABASE_OAUTH";
   }
   if (provider === "AZURE" || provider === "AZURE_ENTRA" || provider === "MICROSOFT") {
     return "AZURE_ENTRA";
@@ -246,79 +255,69 @@ async function resolveAzureIdentity(idToken: string): Promise<string> {
   return email;
 }
 
-type SupabaseConfig = {
-  issuer: string;
-  audience: string | null;
+type SupabaseClientConfig = {
+  url: string;
+  key: string;
 };
 
-function normalizeSupabaseIssuer(rawUrl: string): string {
-  const clean = rawUrl.replace(/\/+$/, "");
-  if (clean.endsWith("/auth/v1")) return clean;
-  return `${clean}/auth/v1`;
-}
-
-function getSupabaseConfig(): SupabaseConfig | null {
+function getSupabaseClientConfig(): SupabaseClientConfig | null {
   const supabaseUrl = process.env.SUPABASE_URL?.trim() || process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  if (!supabaseUrl) return null;
-  return {
-    issuer: normalizeSupabaseIssuer(supabaseUrl),
-    audience: process.env.SUPABASE_JWT_AUDIENCE?.trim() || "authenticated"
-  };
-}
-
-const supabaseJwksByIssuer = new Map<string, ReturnType<typeof createRemoteJWKSet>>();
-
-function getSupabaseJwks(issuer: string) {
-  const cached = supabaseJwksByIssuer.get(issuer);
-  if (cached) return cached;
-  const jwks = createRemoteJWKSet(new URL(`${issuer}/.well-known/jwks.json`));
-  supabaseJwksByIssuer.set(issuer, jwks);
-  return jwks;
+  const supabaseKey =
+    process.env.SUPABASE_ANON_KEY?.trim() ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ||
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim();
+  if (!supabaseUrl || !supabaseKey) return null;
+  return { url: supabaseUrl, key: supabaseKey };
 }
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function extractSupabaseEmail(payload: JWTPayload): string {
-  const direct = typeof payload.email === "string" ? payload.email : "";
+function extractSupabaseEmail(user: { email?: string; user_metadata?: unknown }): string {
+  const direct = typeof user.email === "string" ? user.email : "";
   if (direct) return normalizeEmail(direct);
-  if (isObjectRecord(payload.user_metadata) && typeof payload.user_metadata.email === "string") {
-    return normalizeEmail(payload.user_metadata.email);
+  if (isObjectRecord(user.user_metadata) && typeof user.user_metadata.email === "string") {
+    return normalizeEmail(user.user_metadata.email);
   }
   return "";
 }
 
-function isAzureSupabaseProvider(payload: JWTPayload): boolean {
-  if (!isObjectRecord(payload.app_metadata)) return true;
-  const provider = payload.app_metadata.provider;
-  if (typeof provider !== "string") return true;
-  const normalized = provider.trim().toLowerCase();
-  return (
-    normalized === "azure" ||
-    normalized === "azure_oidc" ||
-    normalized === "microsoft" ||
-    normalized === "entra"
-  );
+function isAllowedSupabaseOAuthProvider(appMetadata: unknown): boolean {
+  if (!isObjectRecord(appMetadata)) return true;
+  const allowed = new Set(["email", "google", "azure", "azure_oidc", "microsoft", "entra"]);
+  const provider = appMetadata.provider;
+  if (typeof provider === "string" && allowed.has(provider.trim().toLowerCase())) return true;
+
+  const providers = appMetadata.providers;
+  if (Array.isArray(providers)) {
+    return providers.some((item) => typeof item === "string" && allowed.has(item.trim().toLowerCase()));
+  }
+
+  return typeof provider !== "string";
 }
 
-async function resolveSupabaseAzureIdentity(accessToken: string): Promise<string> {
-  const cfg = getSupabaseConfig();
+async function resolveSupabaseOAuthIdentity(accessToken: string): Promise<string> {
+  const cfg = getSupabaseClientConfig();
   if (!cfg) {
     const err = new Error("SUPABASE_NOT_CONFIGURED");
     (err as { status?: number }).status = 501;
     throw err;
   }
 
-  const jwks = getSupabaseJwks(cfg.issuer);
-  const verifyOptions = cfg.audience
-    ? { issuer: cfg.issuer, audience: cfg.audience, clockTolerance: "5s" as const }
-    : { issuer: cfg.issuer, clockTolerance: "5s" as const };
-  const { payload } = await jwtVerify(accessToken, jwks, verifyOptions);
+  const supabase = createClient(cfg.url, cfg.key, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false
+    }
+  });
+  const { data, error } = await supabase.auth.getUser(accessToken);
+  if (error || !data.user) throw new Error("INVALID_SUPABASE_TOKEN");
 
-  if (!isAzureSupabaseProvider(payload)) throw new Error("INVALID_SUPABASE_PROVIDER");
+  if (!isAllowedSupabaseOAuthProvider(data.user.app_metadata)) throw new Error("INVALID_SUPABASE_PROVIDER");
 
-  const email = extractSupabaseEmail(payload);
+  const email = extractSupabaseEmail(data.user);
   if (!email) throw new Error("INVALID_SUPABASE_TOKEN");
   return email;
 }
@@ -348,6 +347,7 @@ function isAllowedEmailForAutoProvision(email: string): boolean {
 
   const allowedDomain = process.env.OAUTH_AUTO_PROVISION_ALLOWED_DOMAIN?.trim().toLowerCase();
   if (!allowedDomain) return false;
+  if (allowedDomain === "*") return true;
   const normalizedDomain = allowedDomain.startsWith("@") ? allowedDomain : `@${allowedDomain}`;
   return email.endsWith(normalizedDomain);
 }
@@ -404,14 +404,14 @@ export async function POST(req: Request) {
   if (provider === AZURE_PROVIDER && !idToken) {
     return NextResponse.json({ error: "MISSING_AZURE_TOKEN" }, { status: 400 });
   }
-  if (provider === "SUPABASE_AZURE" && !accessToken) {
+  if (provider === "SUPABASE_OAUTH" && !accessToken) {
     return NextResponse.json({ error: "MISSING_SUPABASE_TOKEN" }, { status: 400 });
   }
 
   const tentativeIdentity =
     provider === AZURE_PROVIDER
       ? email || "azure_token"
-      : provider === "SUPABASE_AZURE"
+      : provider === "SUPABASE_OAUTH"
         ? email || "supabase_token"
         : email;
   const key = makeKey(req, tentativeIdentity);
@@ -450,9 +450,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "INVALID_CREDENTIALS" }, { status: 401 });
     }
   }
-  if (provider === "SUPABASE_AZURE") {
+  if (provider === "SUPABASE_OAUTH") {
     try {
-      email = await resolveSupabaseAzureIdentity(accessToken);
+      email = await resolveSupabaseOAuthIdentity(accessToken);
     } catch (err) {
       const message = err instanceof Error ? err.message : "SUPABASE_AUTH_FAILED";
       const status = (err as { status?: number } | null)?.status;
@@ -460,7 +460,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "SUPABASE_NOT_CONFIGURED" }, { status: 501 });
       }
       await registerFailure(key);
-      console.error("[api/auth/login][SUPABASE_AZURE]", message);
+      console.error("[api/auth/login][SUPABASE_OAUTH]", message);
       return NextResponse.json({ error: "INVALID_CREDENTIALS" }, { status: 401 });
     }
   }

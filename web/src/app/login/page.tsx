@@ -1,105 +1,107 @@
-﻿"use client";
+"use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
 
-function MicrosoftIcon() {
-  return (
-    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" focusable="false">
-      <rect x="0" y="0" width="7" height="7" fill="#f25022" />
-      <rect x="9" y="0" width="7" height="7" fill="#7fba00" />
-      <rect x="0" y="9" width="7" height="7" fill="#00a4ef" />
-      <rect x="9" y="9" width="7" height="7" fill="#ffb900" />
-    </svg>
-  );
-}
+type AuthMode = "login" | "signup";
 
-function prettyError(err: unknown): string {
-  const raw = err instanceof Error ? err.message : "Falha ao entrar";
-  if (raw.includes("SUPABASE_CLIENT_NOT_CONFIGURED")) {
-    return "Configuração ausente: NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY.";
-  }
-  if (raw.includes("FORBIDDEN_ORIGIN")) {
-    return "Origem bloqueada pelo backend. Verifique APP_URL/NEXT_PUBLIC_APP_URL e domínio da Vercel.";
-  }
-  return raw;
-}
-
-function resolveAuthRedirectOrigin(): string {
-  if (typeof window !== "undefined") return window.location.origin;
-  const appUrl = String(process.env.NEXT_PUBLIC_APP_URL ?? "").trim();
-  if (!appUrl) return "";
-  try {
-    return new URL(appUrl).origin;
-  } catch {
-    return "";
+function prettyError(raw: unknown): string {
+  const code = raw instanceof Error ? raw.message : String(raw ?? "");
+  switch (code) {
+    case "INVALID_CREDENTIALS":
+      return "E-mail ou senha inválidos.";
+    case "TOO_MANY_ATTEMPTS":
+      return "Muitas tentativas. Aguarde alguns minutos e tente novamente.";
+    case "FORBIDDEN_ORIGIN":
+      return "Origem bloqueada pelo backend. Verifique APP_URL/NEXT_PUBLIC_APP_URL.";
+    case "AUTO_PROVISION_FAILED":
+      return "Conta criada no Supabase, mas o app não conseguiu vincular uma unidade. Verifique o aprovisionamento automático.";
+    case "SUPABASE_CLIENT_NOT_CONFIGURED":
+      return "Supabase não configurado. Verifique NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY.";
+    case "SUPABASE_NOT_CONFIGURED":
+      return "Backend sem SUPABASE_URL/SUPABASE_ANON_KEY.";
+    case "HTTP 500":
+      return "Não foi possível acessar o banco de dados. Verifique se o Postgres local está rodando.";
+    default:
+      return code || "Falha ao autenticar.";
   }
 }
 
 export default function LoginPage() {
   const router = useRouter();
-  const hasProcessedSupabaseSession = useRef(false);
+  const [mode, setMode] = useState<AuthMode>("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [loadingMicrosoft, setLoadingMicrosoft] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  async function onMicrosoftLogin() {
-    setLoadingMicrosoft(true);
-    setError(null);
-    try {
-      const supabase = getSupabaseBrowserClient();
-      const redirectTo = `${resolveAuthRedirectOrigin()}/login`;
-      const { error: signInError } = await supabase.auth.signInWithOAuth({
-        provider: "azure",
-        options: { redirectTo }
-      });
-      if (signInError) throw signInError;
-    } catch (err) {
-      setError(prettyError(err));
-      setLoadingMicrosoft(false);
-    }
+  async function createSupabaseAppSession(accessToken: string, userEmail: string) {
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        provider: "SUPABASE_PASSWORD",
+        access_token: accessToken,
+        email: userEmail
+      })
+    });
+
+    const body = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(body?.error ?? `HTTP ${res.status}`);
   }
 
-  useEffect(() => {
-    if (hasProcessedSupabaseSession.current) return;
-    hasProcessedSupabaseSession.current = true;
+  async function createLocalAppSession() {
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        provider: "LOCAL",
+        email,
+        password
+      })
+    });
 
-    async function finalizeSupabaseLogin() {
-      try {
-        const supabase = getSupabaseBrowserClient();
-        const { data, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError || !data.session?.access_token) return;
+    const body = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(body?.error ?? `HTTP ${res.status}`);
+  }
 
-        setLoadingMicrosoft(true);
-        const accessToken = data.session.access_token;
-        const userEmail = data.session.user?.email ?? "";
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setMessage(null);
 
-        const res = await fetch("/api/auth/login", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            provider: "SUPABASE_AZURE",
-            access_token: accessToken,
-            email: userEmail
-          })
+    try {
+      const supabase = getSupabaseBrowserClient();
+
+      if (mode === "signup") {
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password
         });
+        if (signUpError) throw signUpError;
 
-        if (!res.ok) {
-          const body = await res.json().catch(() => null);
-          throw new Error(body?.error ?? `HTTP ${res.status}`);
+        if (!data.session?.access_token) {
+          setMessage("Conta criada. Confirme seu e-mail e depois entre com sua senha.");
+          return;
         }
 
+        await createSupabaseAppSession(data.session.access_token, data.user?.email ?? email);
         await supabase.auth.signOut();
         router.push("/unidade");
-      } catch (err) {
-        setError(prettyError(err));
-      } finally {
-        setLoadingMicrosoft(false);
+        return;
       }
-    }
 
-    void finalizeSupabaseLogin();
-  }, [router]);
+      await createLocalAppSession();
+      router.push("/unidade");
+    } catch (err) {
+      setError(prettyError(err));
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="authPage">
@@ -109,42 +111,108 @@ export default function LoginPage() {
         <section className="authIntro">
           <div className="authBrand">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="brandLogo brandLogoBemol" src="/brand/bemol-logo.svg" alt="Bemol" />
+            <img className="brandLogo brandLogoApp" src="/brand/app-logo-highlight.png" alt="Digitaliza Sodexo" />
           </div>
 
-          <h1 className="authTitle">Portal de Presença</h1>
+          <h1 className="authTitle">Registro de ponto</h1>
           <p className="authSubtitle">
-            Portal de registro de presença e reconhecimento facial. <span className="authAccent">Entre</span>{" "}
-            com sua conta Microsoft corporativa.
+            Sistema de registro de ponto e reconhecimento facial. <span className="authAccent">Entre</span>{" "}
+            ou crie sua conta com e-mail e senha.
           </p>
         </section>
 
         <div className="authStackDivider" aria-hidden="true" />
 
         <section className="card authCard">
-          <h2 className="authCardTitle">Entrar</h2>
+          <h2 className="authCardTitle">{mode === "login" ? "Entrar" : "Criar conta"}</h2>
           <p className="authCardSubtitle">
-            Use sua conta corporativa para acessar.
+            {mode === "login" ? "Use sua conta cadastrada no Supabase." : "Cadastre uma nova conta no Supabase."}
           </p>
           <div className="spacer" />
 
-          <button
-            type="button"
-            onClick={onMicrosoftLogin}
-            disabled={loadingMicrosoft}
-            className="authMicrosoftBtn"
-            aria-busy={loadingMicrosoft}
-          >
-            {loadingMicrosoft ? <span className="authSpinner" aria-hidden="true" /> : null}
-            <MicrosoftIcon />
-            <span>{loadingMicrosoft ? "Conectando..." : "Entrar com Microsoft"}</span>
-          </button>
+          <div className="authModeSwitch" role="tablist" aria-label="Modo de autenticação">
+            <button
+              type="button"
+              className={mode === "login" ? "active" : ""}
+              onClick={() => {
+                setMode("login");
+                setError(null);
+                setMessage(null);
+              }}
+              disabled={loading}
+            >
+              Entrar
+            </button>
+            <button
+              type="button"
+              className={mode === "signup" ? "active" : ""}
+              onClick={() => {
+                setMode("signup");
+                setError(null);
+                setMessage(null);
+              }}
+              disabled={loading}
+            >
+              Criar conta
+            </button>
+          </div>
+
+          <div className="spacer" />
+
+          <form className="authForm" onSubmit={onSubmit}>
+            <label className="authField">
+              <span>E-mail</span>
+              <input
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+                required
+              />
+            </label>
+
+            <label className="authField">
+              <span>Senha</span>
+              <input
+                type="password"
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+                minLength={6}
+                required
+              />
+            </label>
+
+            <button type="submit" disabled={loading} className="authSubmitBtn" aria-busy={loading}>
+              {loading ? <span className="authSpinner" aria-hidden="true" /> : null}
+              <span>
+                {loading
+                  ? mode === "login"
+                    ? "Entrando..."
+                    : "Criando..."
+                  : mode === "login"
+                    ? "Entrar"
+                    : "Criar conta"}
+              </span>
+            </button>
+          </form>
+
+          {message ? (
+            <>
+              <div className="spacer" />
+              <div className="card authInfoCard" aria-live="polite">
+                {message}
+              </div>
+            </>
+          ) : null}
 
           {error ? (
             <>
               <div className="spacer" />
               <div className="card authErrorCard" aria-live="polite">
-                Não foi possivel autenticar. {error}
+                Não foi possível autenticar. {error}
               </div>
             </>
           ) : null}
