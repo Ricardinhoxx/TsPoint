@@ -70,6 +70,7 @@ export default function MinhaUnidadePage() {
   const [editTipo, setEditTipo] = useState<"ENTRADA" | "SAIDA">("ENTRADA");
   const [editTimestamp, setEditTimestamp] = useState("");
   const [editMotivo, setEditMotivo] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const roleLabel = role === "ADMIN" ? "Administrador" : "Supervisor";
   const unidadeResponsavel = unidade?.nome ?? (role === "ADMIN" ? "Todas as unidades" : "Não definida");
@@ -390,11 +391,21 @@ export default function MinhaUnidadePage() {
     window.location.href = "/login";
   }
 
+  function openDiaristaModal() {
+    setMobileMenuOpen(false);
+    setDiaristaOpen(true);
+  }
+
+  function openCameraModal() {
+    setMobileMenuOpen(false);
+    setCameraOpen(true);
+  }
+
   return (
     <div>
       <section className="hero">
         <div className="containerWide">
-          <div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
+          <div className="row unidadeHeroTop">
             <div>
               <h1 style={{ margin: 0 }}>Minha unidade</h1>
               <div>
@@ -408,7 +419,7 @@ export default function MinhaUnidadePage() {
               </div>
             </div>
 
-            <div className="row">
+            <div className="row unidadeTopActions">
               <div className="brandLockup" aria-label="Bemol">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img className="brandLogo brandLogoApp" src="/brand/app-logo-highlight.png" alt="Digitaliza Sodexo" />
@@ -421,9 +432,9 @@ export default function MinhaUnidadePage() {
           </div>
 
           <div className="spacer" />
-          <div className="row" style={{ justifyContent: "space-between" }}>
+          <div className="row unidadeNavBar">
             <h2 style={{ margin: 0 }}>Usuários</h2>
-            <div className="row">
+            <div className="row desktopNavActions">
               {role === "ADMIN" ? (
                 <Link className="btnLink secondary" href="/unidade/admin">
                   Admin: atribuições
@@ -435,10 +446,63 @@ export default function MinhaUnidadePage() {
               <Link className="btnLink secondary" href="/unidade/presenca">
                 Presença
               </Link>
-              <button className="secondary" onClick={() => setDiaristaOpen(true)}>
+              <button className="secondary" onClick={openDiaristaModal}>
                 Registrar diarista
               </button>
-              <button onClick={() => setCameraOpen(true)}>Registrar por câmera</button>
+              <button onClick={openCameraModal}>Registrar por câmera</button>
+            </div>
+
+            <div className="mobileNav">
+              <button
+                type="button"
+                className="mobileNavTrigger secondary"
+                aria-label="Abrir navegação"
+                aria-expanded={mobileMenuOpen}
+                onClick={() => setMobileMenuOpen((open) => !open)}
+              >
+                <span />
+                <span />
+                <span />
+              </button>
+              {mobileMenuOpen ? (
+                <div className="mobileNavPanel" role="menu">
+                  {role === "ADMIN" ? (
+                    <Link
+                      className="mobileNavItem"
+                      href="/unidade/admin"
+                      role="menuitem"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Admin: atribuições
+                    </Link>
+                  ) : null}
+                  <Link
+                    className="mobileNavItem"
+                    href="/unidade/cadastrar"
+                    role="menuitem"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Cadastrar colaborador
+                  </Link>
+                  <Link
+                    className="mobileNavItem"
+                    href="/unidade/presenca"
+                    role="menuitem"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Presença
+                  </Link>
+                  <button type="button" className="mobileNavItem" role="menuitem" onClick={openDiaristaModal}>
+                    Registrar diarista
+                  </button>
+                  <button type="button" className="mobileNavItem mobileNavItemPrimary" role="menuitem" onClick={openCameraModal}>
+                    Registrar por câmera
+                  </button>
+                  <button type="button" className="mobileNavItem" role="menuitem" onClick={logout}>
+                    Sair
+                  </button>
+                </div>
+              ) : null}
             </div>
           </div>
 
