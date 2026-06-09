@@ -163,9 +163,9 @@ export default function CameraModal({
   })();
 
   return (
-    <div className="modalBackdrop" role="dialog" aria-modal="true">
-      <div className="modal">
-        <div className="row" style={{ justifyContent: "space-between" }}>
+    <div className="modalBackdrop cameraModalBackdrop" role="dialog" aria-modal="true">
+      <div className="modal cameraModal">
+        <div className="row cameraModalHeader">
           <h2>Camera</h2>
           {hideCloseButton ? null : (
             <button className="secondary" onClick={onClose}>
@@ -183,7 +183,7 @@ export default function CameraModal({
           </>
         ) : null}
         <div
-          className={["videoStage", stageStatusClass].filter(Boolean).join(" ")}
+          className={["videoStage", "cameraVideoStage", stageStatusClass].filter(Boolean).join(" ")}
         >
           <video ref={videoRef} autoPlay playsInline />
           {faceBox ? (
@@ -227,13 +227,15 @@ export default function CameraModal({
         <div className="spacer" />
         {actionResult ? (
           <>
-            <div className="card">{actionResult}</div>
+            <div className="card cameraResultCard" aria-live="polite">
+              {actionResult}
+            </div>
             <div className="spacer" />
           </>
         ) : null}
-        <div className="row">
+        <div className="row cameraActions">
           <button onClick={capture} disabled={busy}>
-            {busy ? "Enviando..." : "Capturar 1 frame"}
+            {busy ? "Enviando..." : "Capturar"}
           </button>
           {match?.matched && match.funcionario_id ? (
             <button
@@ -244,7 +246,7 @@ export default function CameraModal({
               {confirming ? "Confirmando..." : "Confirmar presença"}
             </button>
           ) : null}
-          <small className="muted">
+          <small className="muted cameraHint">
             Dica: luz frontal + rosto centralizado.
             {engine === "loading" ? <> (Carregando detector...)</> : null}
             {engine === "none" ? <> (Deteccao de rosto indisponivel.)</> : null}

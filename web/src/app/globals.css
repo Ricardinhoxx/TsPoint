@@ -275,6 +275,35 @@ small.muted {
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
 }
 
+.cameraModalHeader {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cameraModalHeader h2 {
+  margin: 0;
+}
+
+.cameraActions {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.cameraActions button {
+  flex-shrink: 0;
+}
+
+.cameraHint {
+  flex: 1;
+  min-width: 180px;
+  overflow-wrap: anywhere;
+}
+
+.cameraResultCard {
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+
 video {
   width: 100%;
   border-radius: var(--radius-0);
@@ -686,6 +715,7 @@ video {
   overflow: hidden;
   border: 1px solid #d1d5db;
   background: #111827;
+  border-radius: var(--radius-0);
 }
 
 .videoStage video {
@@ -720,6 +750,8 @@ video {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+  border-radius: var(--radius-0);
+  overflow-wrap: anywhere;
 }
 
 .faceCard--neutral {
@@ -751,12 +783,15 @@ video {
   margin-top: 4px;
   font-size: 18px;
   font-weight: 700;
+  line-height: 1.16;
 }
 
 .faceCardSubtitle {
   margin-top: 4px;
   font-size: 13px;
   opacity: 0.9;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .videoStage--face .faceBox {
@@ -1493,5 +1528,97 @@ video {
 
   .presenceSummaryGridTop {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .cameraModalBackdrop {
+    align-items: stretch;
+    justify-content: stretch;
+    padding: 0;
+  }
+
+  .cameraModal {
+    width: 100%;
+    min-height: 100dvh;
+    max-height: 100dvh;
+    border: none;
+    border-radius: 0;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+  }
+
+  .cameraModalHeader {
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+
+  .cameraModalHeader h2 {
+    font-size: 20px;
+  }
+
+  .cameraVideoStage {
+    flex: 1 1 auto;
+    min-height: 300px;
+    max-height: calc(100dvh - 218px);
+    aspect-ratio: 3 / 4;
+  }
+
+  .cameraVideoStage video {
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .cameraVideoStage .faceCard {
+    left: 10px !important;
+    right: 10px;
+    bottom: 10px;
+    top: auto !important;
+    width: auto;
+    max-width: none;
+    padding: 10px 12px;
+    transform: none !important;
+    background: rgba(15, 23, 42, 0.78);
+  }
+
+  .cameraVideoStage .faceCardKicker {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .cameraVideoStage .faceCardTitle {
+    font-size: clamp(18px, 6vw, 24px);
+    line-height: 1.12;
+  }
+
+  .cameraVideoStage .faceCardSubtitle {
+    font-size: 12px;
+  }
+
+  .cameraActions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .cameraActions button,
+  .cameraActions .cameraHint {
+    width: 100%;
+  }
+
+  .cameraHint {
+    min-width: 0;
+    text-align: center;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .cameraResultCard {
+    padding: 12px;
+    font-size: 14px;
   }
 }
