@@ -256,6 +256,9 @@ SUPABASE_URL=https://<project-ref>.supabase.co
 SUPABASE_ANON_KEY=<anon-key>
 NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<publishable-key, se usado no projeto>
+NEXT_PUBLIC_APP_URL=https://ts-point.vercel.app
+APP_URL=https://ts-point.vercel.app
 ```
 
 Fly `face-api/`:
@@ -267,6 +270,138 @@ FACE_FAKE_MODE=0
 FACE_MODEL=buffalo_l
 FACE_DET_SIZE=640
 FACE_THRESHOLD=0.42
+```
+
+## Vercel Estado Atual
+
+Projeto Vercel:
+
+```txt
+ts-point
+```
+
+URL de producao:
+
+```txt
+https://ts-point.vercel.app
+```
+
+Repositorio/branch usado:
+
+```txt
+https://github.com/Ricardinhoxx/TsPoint.git
+branch: main
+```
+
+Configuracao correta esperada em `Settings > Build and Deployment`:
+
+```txt
+Framework Preset: Next.js
+Root Directory: web
+Build Command: npm run build
+Install Command: npm ci
+Output Directory: vazio
+```
+
+Observacao importante:
+
+- O `Root Directory` foi confirmado no print como `web`.
+- O `Framework Preset` apareceu como `Other`; isso provavelmente causou o 404 da Vercel mesmo com deploy `Ready`.
+- Ajustar para `Next.js`, salvar e fazer redeploy.
+- Se continuar 404 depois disso, criar um novo projeto Vercel importando o repo e selecionando `Root Directory: web` na tela inicial.
+
+### Env Vercel Ja Mapeada
+
+O usuario adicionou/atualizou as envs no painel da Vercel. Lista esperada:
+
+```txt
+AUTH_SECRET
+DATABASE_URL
+FACE_API_SECRET
+FACE_API_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+NEXT_PUBLIC_SUPABASE_URL
+SUPABASE_URL
+SUPABASE_ANON_KEY
+NEXT_PUBLIC_APP_URL
+APP_URL
+```
+
+Valores esperados:
+
+```txt
+NEXT_PUBLIC_APP_URL=https://ts-point.vercel.app
+APP_URL=https://ts-point.vercel.app
+SUPABASE_URL=mesmo valor de NEXT_PUBLIC_SUPABASE_URL
+SUPABASE_ANON_KEY=mesmo valor de NEXT_PUBLIC_SUPABASE_ANON_KEY
+```
+
+Pendente ate subir a Face API na Fly:
+
+```txt
+FACE_API_URL=http://localhost:8080
+```
+
+Esse valor nao funciona em producao. Depois do deploy Fly, trocar para:
+
+```txt
+FACE_API_URL=https://digitaliza-sodexo-face-api.fly.dev
+```
+
+`FACE_API_SECRET` na Vercel deve ser exatamente igual ao `INTERNAL_SECRET` configurado na Fly.
+
+### Supabase Auth URL Config
+
+No Supabase Auth, configurar:
+
+```txt
+Site URL: https://ts-point.vercel.app
+Redirect URLs:
+- https://ts-point.vercel.app/
+- https://ts-point.vercel.app/login
+```
+
+O print anterior mostrava `Site URL` ainda como `http://localhost:3000`; isso precisa ser alterado para a URL de producao.
+
+### Erro Edge Middleware Resolvido
+
+Erro visto na Vercel:
+
+```txt
+The Edge Function "middleware" is referencing unsupported modules:
+- __vc__ns__/0/web/middleware.js: @/lib/securityAudit
+```
+
+Causa:
+
+- `web/middleware.ts` importava `@/lib/securityAudit`.
+- Middleware da Vercel roda no Edge Runtime e nao pode depender de modulos que podem puxar APIs Node/server incompatíveis.
+
+Correcao feita:
+
+- Removido o import de `logSecurityEvent` no `web/middleware.ts`.
+- O log de probes suspeitos agora usa `console.warn` direto no middleware.
+- As rotas de API continuam podendo usar `@/lib/securityAudit`.
+
+Validacao local:
+
+```powershell
+cd web
+npm.cmd run build
+```
+
+Resultado:
+
+```txt
+Compiled successfully
+Rotas geradas: /, /login, /tablet, /unidade, APIs
+```
+
+Commit que contem essa correcao:
+
+```txt
+80c6e65 src
 ```
 
 ## Migrations E Seed
@@ -709,28 +844,33 @@ Logs:
 
 ## Pendencias / Proximos Passos
 
-1. Criar/configurar Supabase Database como banco final.
-2. Habilitar `vector`/pgvector no Supabase.
-3. Aplicar migrations `db/migrations/*.sql` no Supabase.
-4. Aplicar seed apenas se quiser dados dev; para producao, criar dados reais.
-5. Atualizar `DATABASE_URL` do `web` e `face-api` para Supabase.
-6. Decidir se o Fly Managed Postgres temporario de US$72/mes sera destruido apos migracao.
-7. Finalizar instalacao do motor facial real (`insightface`) ou rodar a Face API real em Linux/Fly, onde esse setup tende a ser mais simples.
-8. Trocar `FACE_FAKE_MODE=1` para `FACE_FAKE_MODE=0` somente depois que `insightface`, `onnxruntime` e `opencv-python-headless` estiverem instalados.
-9. Apagar embeddings fake e recadastrar rostos com motor real no banco Supabase.
-10. Configurar deploy do `face-api` na Fly.
-11. Configurar `FACE_API_URL` nos secrets da Vercel apontando para a URL Fly da Face API.
-12. Deploy do `web/` na Vercel com Root Directory `web/`.
-13. Para producao, configurar secrets, nao `.env.local`:
+1. Na Vercel, trocar `Framework Preset` de `Other` para `Next.js`.
+2. Confirmar que `Root Directory` continua `web`.
+3. Fazer redeploy de producao na Vercel.
+4. Confirmar que `https://ts-point.vercel.app/login` nao retorna mais 404.
+5. No Supabase Auth, garantir `Site URL = https://ts-point.vercel.app`.
+6. Configurar deploy do `face-api` na Fly.
+7. Configurar secrets da Fly:
+   - `DATABASE_URL`
+   - `INTERNAL_SECRET`
+   - `FACE_FAKE_MODE`
+   - `FACE_MODEL`
+   - `FACE_DET_SIZE`
+   - `FACE_THRESHOLD`
+8. Atualizar `FACE_API_URL` na Vercel apontando para a URL Fly da Face API.
+9. Finalizar/validar motor facial real (`insightface`, `onnxruntime`, `opencv-python-headless`) em Fly/Linux.
+10. Trocar `FACE_FAKE_MODE=1` para `FACE_FAKE_MODE=0` somente depois que o motor real estiver carregando.
+11. Apagar embeddings fake e recadastrar rostos com motor real no banco Supabase.
+12. Para producao, manter secrets no painel da Vercel/Fly, nao depender de `.env.local`:
    - `DATABASE_URL`
    - `AUTH_SECRET`
    - `FACE_API_URL`
    - `FACE_API_SECRET`
    - Supabase envs
    - `OAUTH_AUTO_PROVISION_*`
-14. Trocar `AUTH_SECRET=change-me`.
-15. Garantir que `FACE_API_SECRET` e `INTERNAL_SECRET` tenham o mesmo valor.
-16. Rodar validacoes:
+13. Garantir que `AUTH_SECRET` nao esta como `change-me`.
+14. Garantir que `FACE_API_SECRET` e `INTERNAL_SECRET` tenham o mesmo valor.
+15. Rodar validacoes:
 
 ```powershell
 cd web

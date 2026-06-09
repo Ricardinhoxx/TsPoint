@@ -16,6 +16,6 @@ app = "digitaliza-sodexo-face-api"
   [[http_service.checks]]
     interval = "15s"
     timeout = "10s"
-    grace_period = "90s"
+    grace_period = "180s"
     method = "GET"
     path = "/health"
