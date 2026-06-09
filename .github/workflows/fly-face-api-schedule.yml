@@ -1,0 +1,79 @@
+name: Fly Face API Schedule
+
+on:
+  schedule:
+    # Manaus (UTC-4), Monday-Friday.
+    # Start before morning check-in: 06:20 AMT.
+    - cron: "20 10 * * 1-5"
+    # Stop after morning check-in window: 09:40 AMT.
+    - cron: "40 13 * * 1-5"
+    # Start before afternoon checkout: 16:20 AMT.
+    - cron: "20 20 * * 1-5"
+    # Stop after afternoon checkout window: 19:40 AMT.
+    - cron: "40 23 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "start or stop the Fly machine"
+        required: true
+        default: "status"
+        type: choice
+        options:
+          - status
+          - start
+          - stop
+
+env:
+  FLY_APP: digitaliza-sodexo-face-api
+  FLY_MACHINE_ID: 7811903f4d9318
+
+jobs:
+  schedule:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Decide action
+        id: decide
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "action=${{ inputs.action }}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          minute_hour="$(date -u +'%M %H')"
+          case "$minute_hour" in
+            "20 10"|"20 20") echo "action=start" >> "$GITHUB_OUTPUT" ;;
+            "40 13"|"40 23") echo "action=stop" >> "$GITHUB_OUTPUT" ;;
+            *) echo "action=status" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: Start machine
+        if: steps.decide.outputs.action == 'start'
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          flyctl machine start "$FLY_MACHINE_ID" -a "$FLY_APP" || true
+          for i in {1..30}; do
+            if curl -fsS "https://${FLY_APP}.fly.dev/health"; then
+              echo "Face API is healthy."
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Face API did not become healthy in time."
+          exit 1
+
+      - name: Stop machine
+        if: steps.decide.outputs.action == 'stop'
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: flyctl machine stop "$FLY_MACHINE_ID" -a "$FLY_APP"
+
+      - name: Show status
+        if: steps.decide.outputs.action == 'status'
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: flyctl status -a "$FLY_APP"
