@@ -192,30 +192,47 @@ export default function TabletClient() {
 
   if (loadingSession) {
     return (
-      <div className="containerWide">
-        <div className="card">Preparando modo tablet...</div>
+      <div className="containerWide tabletShell">
+        <div className="tabletStartPanel">
+          <div className="tabletStartContent">
+            <span className="statusBadge statusBadgeInfo">Iniciando</span>
+            <h2>Preparando tablet</h2>
+            <p>Validando o dispositivo e a unidade vinculada.</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!session) {
     return (
-      <div className="containerWide">
-        <div className="card" style={{ borderColor: "#8a1f1f" }}>
-          Erro: {sessionError ?? "Nao foi possivel iniciar o tablet."}
+      <div className="containerWide tabletShell">
+        <div className="tabletStartPanel">
+          <div className="tabletStartContent">
+            <span className="statusBadge statusBadgeDanger">Acesso bloqueado</span>
+            <h2>Tablet indisponivel</h2>
+            <p>{sessionError ?? "Nao foi possivel iniciar o tablet."}</p>
+            <Link href="/login" className="btnLink secondary">
+              Login admin
+            </Link>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="containerWide">
-      <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+    <div className="containerWide tabletShell">
+      <div className="tabletHeader">
         <div>
-          <h1 style={{ margin: 0 }}>Registro por tablet</h1>
-          <small className="muted">{headerText}</small>
+          <p className="opsKicker">Terminal de ponto</p>
+          <h1>Registro por tablet</h1>
+          <div className="opsMetaRow">
+            <span className="statusBadge statusBadgeOk">Tablet ativo</span>
+            <span className="statusBadge statusBadgeNeutral">{headerText}</span>
+          </div>
         </div>
-        <div className="row">
+        <div className="tabletActions">
           <Link href="/login" className="btnLink secondary">
             Login admin
           </Link>
@@ -236,13 +253,13 @@ export default function TabletClient() {
       ) : null}
 
       {!started ? (
-        <div className="card">
-          <h2 style={{ marginTop: 0 }}>Pronto para iniciar</h2>
-          <small className="muted">
-            Toque em iniciar para abrir a camera e comecar o registro de ponto facial.
-          </small>
-          <div className="spacer" />
-          <button onClick={iniciarTablet}>Iniciar</button>
+        <div className="tabletStartPanel">
+          <div className="tabletStartContent">
+            <span className="statusBadge statusBadgeInfo">Pronto</span>
+            <h2>Iniciar atendimento</h2>
+            <p>Toque para abrir a camera e comecar o registro de ponto facial.</p>
+            <button className="tabletStartButton" onClick={iniciarTablet}>Iniciar ponto</button>
+          </div>
         </div>
       ) : (
         <CameraModal

@@ -118,15 +118,22 @@ export default function FaceEnrollModal({ onClose, onEnroll }: Props) {
 
   return (
     <div className="modalBackdrop" role="dialog" aria-modal="true">
-      <div className="modal">
-        <div className="row" style={{ justifyContent: "space-between" }}>
-          <h2>Base facial</h2>
-          <button className="secondary" onClick={onClose} disabled={busy}>
-            Fechar
-          </button>
+      <div className="modal biometricTerminal">
+        <div className="biometricTop">
+          <div>
+            <h2>Cadastro facial</h2>
+            <p>Capture 3 a 8 fotos com pequenas variacoes de angulo e luz.</p>
+          </div>
+          <div className="biometricTopActions">
+            <span className={["statusBadge", captured.length >= 3 ? "statusBadgeOk" : "statusBadgeWarn"].join(" ")}>
+              {captured.length}/8 fotos
+            </span>
+            <button className="secondary" onClick={onClose} disabled={busy}>
+              Fechar
+            </button>
+          </div>
         </div>
         <small className="muted">
-          Capture 3-8 fotos com pequenas variacoes (angulo/luz).{" "}
           {engine === "loading" ? <> (Carregando detector...)</> : null}
           {engine === "none" ? <> (Deteccao de rosto indisponivel.)</> : null}
         </small>
@@ -161,7 +168,7 @@ export default function FaceEnrollModal({ onClose, onEnroll }: Props) {
 
         <div className="spacer" />
 
-        <div className="row" style={{ justifyContent: "space-between" }}>
+        <div className="biometricActions">
           <div className="row">
             <button onClick={captureOne} disabled={busy || captured.length >= 8}>
               Capturar foto ({captured.length}/8)
@@ -177,6 +184,7 @@ export default function FaceEnrollModal({ onClose, onEnroll }: Props) {
           <button onClick={submitEnroll} disabled={busy || captured.length < 3}>
             {busy ? "Cadastrando..." : "Salvar base"}
           </button>
+          <small className="biometricHint">Base facial fica pronta após salvar pelo menos 3 capturas válidas.</small>
         </div>
 
         {captured.length ? (

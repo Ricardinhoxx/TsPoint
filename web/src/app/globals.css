@@ -380,6 +380,116 @@ small.muted {
   line-height: 1.45;
 }
 
+.biometricTerminal {
+  width: min(980px, 100%);
+  padding: 16px;
+}
+
+.biometricTerminalKiosk {
+  width: min(1040px, calc(100vw - 24px));
+}
+
+.biometricTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.biometricTop h2 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1.08;
+}
+
+.biometricTop p {
+  margin: 6px 0 0;
+  color: var(--color-muted);
+}
+
+.biometricTopActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.biometricStageWrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 230px;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.biometricStatusPanel {
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-0);
+  background: var(--color-surface-soft);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.biometricStatusPanel strong {
+  display: block;
+  margin-top: 10px;
+  color: var(--color-text);
+  font-size: 22px;
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+}
+
+.biometricStatusPanel span {
+  display: block;
+  margin-top: 6px;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.biometricSignal {
+  border-top: 1px solid var(--color-border-soft);
+  padding-top: 12px;
+}
+
+.biometricSignal small {
+  display: block;
+  color: var(--color-muted);
+  font-weight: 700;
+}
+
+.biometricSignal b {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-text);
+}
+
+.biometricActions {
+  display: grid;
+  grid-template-columns: auto auto minmax(180px, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.biometricActions button {
+  white-space: nowrap;
+}
+
+.biometricHint {
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+:root[data-theme="dark"] .biometricStatusPanel {
+  background: #121a28;
+  border-color: #344159;
+}
+
 video {
   width: 100%;
   border-radius: var(--radius-0);
@@ -774,6 +884,710 @@ video {
   padding-bottom: 40px;
 }
 
+.opsPage {
+  min-height: 100vh;
+  background: var(--color-bg);
+}
+
+.opsHero {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(245, 247, 251, 0.96) 100%);
+  border-bottom: 1px solid var(--color-border-soft);
+}
+
+.opsHeroInner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: start;
+}
+
+.opsKicker {
+  margin: 0 0 8px;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.opsTitle {
+  margin: 0;
+  color: var(--color-text);
+  font-size: clamp(30px, 4vw, 48px);
+  line-height: 1.04;
+  letter-spacing: 0;
+}
+
+.opsSubtitle {
+  max-width: 68ch;
+  margin: 10px 0 0;
+  color: var(--color-muted);
+  line-height: 1.55;
+}
+
+.opsMetaRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.opsHeroActions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.opsHeroActions .brandLockup {
+  padding: 10px;
+}
+
+.opsActionBar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-top: 22px;
+}
+
+.opsActionTitle {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 22px;
+  line-height: 1.16;
+}
+
+.opsDesktopActions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.opsQuickGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.opsMetricCard {
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-0);
+  background: var(--color-surface);
+  padding: 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+.opsMetricCard strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-text);
+  font-size: 28px;
+  line-height: 1.05;
+}
+
+.opsMetricCard small {
+  display: block;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.opsMetricCard span {
+  display: block;
+  margin-top: 8px;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.opsMetricCard[data-tone="ok"] {
+  border-color: rgba(15, 159, 110, 0.34);
+}
+
+.opsMetricCard[data-tone="warn"] {
+  border-color: rgba(181, 71, 8, 0.34);
+}
+
+.opsMetricCard[data-tone="info"] {
+  border-color: rgba(16, 87, 216, 0.28);
+}
+
+.opsContent {
+  padding-top: 22px;
+  padding-bottom: 34px;
+}
+
+.opsPanelGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.opsPanel {
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-0);
+  background: var(--color-surface);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.opsPanelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.opsPanelHeader h2 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 22px;
+  line-height: 1.16;
+}
+
+.opsPanelHeader p {
+  margin: 4px 0 0;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.opsRoster {
+  display: grid;
+  gap: 10px;
+}
+
+.opsRosterItem {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-0);
+  padding: 12px;
+  background: var(--color-surface-soft);
+}
+
+.opsAvatar {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-0);
+  background: #e8f1ff;
+  color: #175cd3;
+  font-weight: 800;
+}
+
+.opsRosterName {
+  color: var(--color-text);
+  font-weight: 800;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.opsRosterMeta {
+  margin-top: 4px;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.opsBadgeStack {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.statusBadge {
+  display: inline-flex;
+  min-height: 26px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.statusBadgeOk {
+  background: #ecfdf3;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.statusBadgeWarn {
+  background: #fffbeb;
+  border-color: #fcd34d;
+  color: #92400e;
+}
+
+.statusBadgeDanger {
+  background: #fff1f2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+.statusBadgeInfo {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.statusBadgeNeutral {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+.opsRecognitionState {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-0);
+  background: var(--color-surface-soft);
+  padding: 14px;
+}
+
+.opsRecognitionName {
+  color: var(--color-text);
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.16;
+  overflow-wrap: anywhere;
+}
+
+.opsRecognitionState p {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.opsFormGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.opsFormGrid > * {
+  min-width: 0;
+}
+
+.opsFullWidth {
+  grid-column: 1 / -1;
+}
+
+.opsAdminActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.opsEmptyState {
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-0);
+  color: var(--color-muted);
+  padding: 18px;
+  text-align: center;
+}
+
+.tabletShell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding-top: 22px;
+  padding-bottom: 22px;
+}
+
+.tabletHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.tabletHeader h1 {
+  margin: 0;
+  font-size: clamp(28px, 4vw, 46px);
+  line-height: 1.05;
+}
+
+.tabletActions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.tabletStartPanel {
+  flex: 1;
+  min-height: 58vh;
+  margin-top: 18px;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-0);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(248, 250, 252, 0.94));
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.tabletStartContent {
+  width: min(520px, 100%);
+}
+
+.tabletStartContent h2 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: clamp(30px, 5vw, 52px);
+  line-height: 1.05;
+}
+
+.tabletStartContent p {
+  margin: 12px 0 22px;
+  color: var(--color-muted);
+  font-size: 18px;
+  line-height: 1.45;
+}
+
+.tabletStartButton {
+  min-height: 56px;
+  min-width: min(100%, 260px);
+  font-size: 18px;
+}
+
+.flowPage {
+  min-height: 100vh;
+  padding-top: 28px;
+  padding-bottom: 34px;
+}
+
+.flowHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.flowHeader h1 {
+  margin: 0;
+  font-size: clamp(30px, 4vw, 44px);
+  line-height: 1.06;
+}
+
+.wizardLayout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.wizardSteps {
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-0);
+  background: var(--color-surface);
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+  box-shadow: var(--shadow-sm);
+}
+
+.wizardStep {
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-0);
+  background: var(--color-surface-soft);
+  padding: 12px;
+}
+
+.wizardStep strong {
+  display: block;
+  color: var(--color-text);
+  line-height: 1.25;
+}
+
+.wizardStep span {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.wizardStep.isActive {
+  border-color: var(--color-primary);
+  background: #eef4ff;
+}
+
+.wizardStep.isDone {
+  border-color: rgba(15, 159, 110, 0.34);
+  background: #ecfdf3;
+}
+
+.wizardMain {
+  display: grid;
+  gap: 16px;
+}
+
+.wizardResult {
+  border: 1px solid rgba(15, 159, 110, 0.34);
+  border-radius: var(--radius-0);
+  background: #ecfdf3;
+  padding: 14px;
+}
+
+.wizardResult strong {
+  display: block;
+  color: #166534;
+  font-size: 18px;
+}
+
+.adminTabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 14px;
+}
+
+.adminTab {
+  flex: 0 0 auto;
+  min-height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-0);
+  background: var(--color-surface);
+  color: var(--color-text);
+  padding: 9px 12px;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.adminTab.isActive {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-primary-contrast);
+}
+
+.adminSection {
+  display: grid;
+  gap: 16px;
+}
+
+:root[data-theme="dark"] .wizardSteps,
+:root[data-theme="dark"] .wizardStep {
+  background: var(--color-surface);
+  border-color: #344159;
+}
+
+:root[data-theme="dark"] .wizardStep.isActive {
+  background: rgba(116, 179, 255, 0.12);
+  border-color: #74b3ff;
+}
+
+:root[data-theme="dark"] .wizardStep.isDone,
+:root[data-theme="dark"] .wizardResult {
+  background: rgba(52, 211, 153, 0.12);
+  border-color: rgba(52, 211, 153, 0.42);
+}
+
+:root[data-theme="dark"] .wizardResult strong {
+  color: #9af5d0;
+}
+
+:root[data-theme="dark"] .tabletStartPanel {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(116, 179, 255, 0.14), transparent 36%),
+    var(--color-surface);
+  border-color: #344159;
+}
+
+:root[data-theme="dark"] .opsHero {
+  background:
+    radial-gradient(circle at 86% 0%, rgba(116, 179, 255, 0.12), transparent 30%),
+    linear-gradient(180deg, #182133 0%, #111827 100%);
+  border-bottom-color: #324159;
+}
+
+:root[data-theme="dark"] .opsMetricCard,
+:root[data-theme="dark"] .opsPanel {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0)),
+    var(--color-surface);
+  border-color: #344159;
+}
+
+:root[data-theme="dark"] .opsRosterItem,
+:root[data-theme="dark"] .opsRecognitionState {
+  background: #121a28;
+  border-color: #344159;
+}
+
+:root[data-theme="dark"] .opsAvatar {
+  background: rgba(116, 179, 255, 0.14);
+  color: #cfe6ff;
+}
+
+:root[data-theme="dark"] .statusBadgeOk {
+  background: rgba(52, 211, 153, 0.12);
+  border-color: rgba(52, 211, 153, 0.4);
+  color: #9af5d0;
+}
+
+:root[data-theme="dark"] .statusBadgeWarn {
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.42);
+  color: #fde68a;
+}
+
+:root[data-theme="dark"] .statusBadgeDanger {
+  background: rgba(248, 113, 113, 0.12);
+  border-color: rgba(248, 113, 113, 0.4);
+  color: #fecaca;
+}
+
+:root[data-theme="dark"] .statusBadgeInfo {
+  background: rgba(116, 179, 255, 0.12);
+  border-color: rgba(116, 179, 255, 0.42);
+  color: #cfe6ff;
+}
+
+:root[data-theme="dark"] .statusBadgeNeutral {
+  background: #182031;
+  border-color: #46546d;
+  color: #d9e1ee;
+}
+
+@media (max-width: 1100px) {
+  .opsHeroInner,
+  .opsPanelGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .opsHeroActions {
+    justify-content: flex-start;
+  }
+
+  .opsQuickGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .opsFormGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .opsHero .containerWide,
+  .opsContent {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .opsActionBar {
+    align-items: flex-start;
+  }
+
+  .opsDesktopActions {
+    display: none;
+  }
+
+  .opsQuickGrid,
+  .opsFormGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .opsPanel {
+    padding: 14px;
+  }
+
+  .opsPanelHeader {
+    display: block;
+  }
+
+  .opsRosterItem {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  .opsAvatar {
+    width: 40px;
+    height: 40px;
+  }
+
+  .opsBadgeStack {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .biometricStageWrap {
+    grid-template-columns: 1fr;
+  }
+
+  .biometricStatusPanel {
+    min-height: 0;
+  }
+
+  .biometricActions {
+    grid-template-columns: 1fr;
+  }
+
+  .tabletShell {
+    padding: 14px;
+  }
+
+  .tabletActions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .tabletStartPanel {
+    min-height: 62vh;
+    padding: 20px;
+  }
+
+  .flowPage {
+    padding-top: 18px;
+    padding-bottom: 24px;
+  }
+
+  .wizardLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .wizardSteps {
+    grid-template-columns: 1fr;
+  }
+
+  .adminTabs {
+    margin-left: -14px;
+    margin-right: -14px;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+}
+
 @media (max-width: 820px) {
   .row {
     flex-wrap: wrap;
@@ -1029,6 +1843,56 @@ video {
   gap: 10px;
 }
 
+.employeePointCards {
+  display: none;
+}
+
+.employeePointDayCard {
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-0);
+  background: var(--color-surface);
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.employeePointDayHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.employeePointDayHeader strong {
+  color: var(--color-text);
+}
+
+.employeePointDayGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.employeePointDayGrid span {
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-0);
+  background: var(--color-surface-soft);
+  padding: 8px;
+}
+
+.employeePointDayGrid small {
+  display: block;
+  color: var(--color-muted);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.employeePointDayGrid b {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-text);
+}
+
 .presenceGrid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -1103,6 +1967,15 @@ video {
   }
   .employeePointFilter {
     width: 100%;
+  }
+
+  .employeePointTable {
+    display: none;
+  }
+
+  .employeePointCards {
+    display: grid;
+    gap: 10px;
   }
 }
 

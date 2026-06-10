@@ -102,6 +102,7 @@ export default function CadastrarColaboradorPage() {
     role === "ADMIN"
       ? (unidades.find((u) => u.id === selectedUnidadeId) ?? null)
       : unidade;
+  const currentStep = enrollResult ? 3 : created ? 2 : 1;
 
   useEffect(() => {
     async function load() {
@@ -224,50 +225,72 @@ export default function CadastrarColaboradorPage() {
   }
 
   return (
-    <div className="containerWide">
-      <div className="row" style={{ justifyContent: "space-between" }}>
+    <div className="containerWide flowPage">
+      <div className="flowHeader">
         <div>
-          <h1 style={{ margin: 0 }}>Cadastrar colaborador</h1>
-          <small className="muted">
-            {selectedUnidade
-              ? `${selectedUnidade.nome} (id=${selectedUnidade.id})`
-              : role === "ADMIN"
-                ? "Selecione uma unidade"
-                : "Carregando unidade..."}
-          </small>
+          <p className="opsKicker">Cadastro operacional</p>
+          <h1>Cadastrar colaborador</h1>
+          <div className="opsMetaRow">
+            <span className="statusBadge statusBadgeInfo">{role}</span>
+            <span className="statusBadge statusBadgeNeutral">
+              {selectedUnidade
+                ? `${selectedUnidade.nome} (id=${selectedUnidade.id})`
+                : role === "ADMIN"
+                  ? "Selecione uma unidade"
+                  : "Carregando unidade..."}
+            </span>
+          </div>
         </div>
         <Link className="btnLink secondary" href="/unidade">
           Voltar
         </Link>
       </div>
 
-      <div className="spacer" />
+      <div className="wizardLayout">
+        <aside className="wizardSteps" aria-label="Etapas do cadastro">
+          <div className={["wizardStep", currentStep === 1 ? "isActive" : currentStep > 1 ? "isDone" : ""].join(" ").trim()}>
+            <span className="statusBadge statusBadgeInfo">Etapa 1</span>
+            <strong>Dados e jornada</strong>
+            <span>Nome, unidade, turno e horário previsto.</span>
+          </div>
+          <div className={["wizardStep", currentStep === 2 ? "isActive" : currentStep > 2 ? "isDone" : ""].join(" ").trim()}>
+            <span className="statusBadge statusBadgeInfo">Etapa 2</span>
+            <strong>Base facial</strong>
+            <span>Capture as fotos para reconhecimento no ponto.</span>
+          </div>
+          <div className={["wizardStep", currentStep === 3 ? "isDone" : ""].join(" ").trim()}>
+            <span className="statusBadge statusBadgeOk">Etapa 3</span>
+            <strong>Pronto para operar</strong>
+            <span>Colaborador disponível no terminal de ponto.</span>
+          </div>
+        </aside>
 
-      <div className="card">
-        {processStatus ? (
+        <main className="wizardMain">
+          <section className="opsPanel">
+            {processStatus ? (
           <>
             <div className="card" style={{ borderColor: "#2563eb" }}>
               Status: {processStatus}
             </div>
             <div className="spacer" />
           </>
-        ) : null}
+            ) : null}
 
         <form onSubmit={onSubmit}>
-          <label>Nome</label>
-          <input
-            value={nome}
-            onChange={(e) => setNome(e.target.value)}
-            required
-            minLength={2}
-            placeholder="Ex: João da Silva"
-          />
+          <div className="opsFormGrid">
+            <div className="opsFullWidth">
+              <label>Nome</label>
+              <input
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                required
+                minLength={2}
+                placeholder="Ex: João da Silva"
+              />
+            </div>
 
-          <div className="spacer" />
-
-          <div className="row" style={{ alignItems: "flex-end" }}>
             {role === "ADMIN" ? (
-              <div style={{ flex: 1 }}>
+              <div>
                 <label>Unidade</label>
                 <select
                   value={selectedUnidadeId ? String(selectedUnidadeId) : ""}
@@ -285,7 +308,7 @@ export default function CadastrarColaboradorPage() {
                 </select>
               </div>
             ) : null}
-            <div style={{ flex: 1 }}>
+            <div>
               <label>Turno</label>
               <select
                 value={String(turno)}
@@ -296,7 +319,7 @@ export default function CadastrarColaboradorPage() {
                 <option value="3">Turno 3</option>
               </select>
             </div>
-            <div style={{ flex: 1 }}>
+            <div>
               <label>Local</label>
               <select
                 value={localTipo}
@@ -307,7 +330,7 @@ export default function CadastrarColaboradorPage() {
                 <option value="CD">CD</option>
               </select>
             </div>
-            <div style={{ flex: 1 }}>
+            <div>
               <label>Entrada prevista</label>
               <input
                 type="time"
@@ -315,7 +338,7 @@ export default function CadastrarColaboradorPage() {
                 onChange={(e) => setHoraEntradaPrevista(e.target.value)}
               />
             </div>
-            <div style={{ flex: 1 }}>
+            <div>
               <label>Saída prevista</label>
               <input
                 type="time"
@@ -323,7 +346,7 @@ export default function CadastrarColaboradorPage() {
                 onChange={(e) => setHoraSaidaPrevista(e.target.value)}
               />
             </div>
-            <div style={{ flex: 1 }}>
+            <div>
               <button type="submit" disabled={loading}>
                 {loading ? "Salvando..." : "Salvar colaborador"}
               </button>
@@ -343,11 +366,12 @@ export default function CadastrarColaboradorPage() {
         {created ? (
           <>
             <div className="spacer" />
-            <div className="card">
+            <div className="wizardResult">
               <div className="row" style={{ justifyContent: "space-between" }}>
                 <div>
+                  <strong>{created.nome}</strong>
                   <div>
-                    Criado: <b>{created.nome}</b>{" "}
+                    Colaborador criado{" "}
                     <small className="muted">
                       (id={created.id}, turno={created.turno}, local={created.local_tipo}, entrada=
                       {created.hora_entrada_prevista ?? "--:--"}, saída={created.hora_saida_prevista ?? "--:--"})
@@ -368,6 +392,8 @@ export default function CadastrarColaboradorPage() {
             </div>
           </>
         ) : null}
+          </section>
+        </main>
       </div>
 
       {enrollOpen ? (

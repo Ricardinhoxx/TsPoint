@@ -139,7 +139,7 @@ export default function MeuPontoPage() {
           </section>
 
           <div className="spacer" />
-          <div className="tableShell">
+          <div className="tableShell employeePointTable">
             <table>
               <thead>
                 <tr>
@@ -172,6 +172,32 @@ export default function MeuPontoPage() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          <div className="employeePointCards">
+            {visibleDays.length === 0 ? (
+              <div className="employeePointDayCard">Nenhum ponto registrado neste mês.</div>
+            ) : (
+              visibleDays.map((d) => (
+                <div className="employeePointDayCard" key={`card-${d.day}`}>
+                  <div className="employeePointDayHeader">
+                    <strong>{fmtDate(d.day)}</strong>
+                    <span className={["statusBadge", d.incompleto ? "statusBadgeWarn" : "statusBadgeOk"].join(" ")}>
+                      {d.incompleto ? "Incompleto" : "OK"}
+                    </span>
+                  </div>
+                  <div className="employeePointDayGrid">
+                    <span><small>Entrada</small><b>{fmtTime(d.entrada)}</b></span>
+                    <span><small>Saída</small><b>{fmtTime(d.saida)}</b></span>
+                    <span><small>Total</small><b>{fmtMinutes(d.total_minutos)}</b></span>
+                    <span><small>Extra</small><b>{fmtMinutes(d.hora_extra_minutos)}</b></span>
+                  </div>
+                  <small className="muted">
+                    {d.registros.map((r) => `${r.tipo} ${fmtTime(r.timestamp)}`).join(" | ")}
+                  </small>
+                </div>
+              ))
+            )}
           </div>
         </>
       ) : null}

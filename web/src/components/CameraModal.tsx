@@ -162,16 +162,54 @@ export default function CameraModal({
     return "videoStage--face";
   })();
 
+  const terminalStatusClass = (() => {
+    if (recognizing || busy) return "statusBadgeInfo";
+    if (match?.matched) return "statusBadgeOk";
+    if (match) return "statusBadgeWarn";
+    if (faceBox) return "statusBadgeOk";
+    return "statusBadgeNeutral";
+  })();
+
+  const terminalStatusLabel = (() => {
+    if (recognizing || busy) return "Reconhecendo";
+    if (match?.matched) return "Identificado";
+    if (match) return "Sem match";
+    if (faceBox) return "Rosto detectado";
+    return "Aguardando rosto";
+  })();
+
+  const terminalTitle = (() => {
+    if (recognizing || busy) return "Validando identidade";
+    if (match?.matched) return match.nome ?? "Colaborador identificado";
+    if (match) return "Tente novamente";
+    if (faceBox) return "Pronto para capturar";
+    return "Centralize o rosto";
+  })();
+
+  const terminalSubtitle = (() => {
+    if (recognizing || busy) return "Mantenha o colaborador enquadrado até a resposta do sistema.";
+    if (match?.matched) return role === "ADMIN" ? `${unitLabel} | score=${match.score?.toFixed(3) ?? "n/a"}` : unitLabel;
+    if (match) return "Confira iluminação, distância e base facial cadastrada.";
+    if (faceBox) return "Use luz frontal e evite sombras fortes.";
+    return "A câmera está ativa e procurando um rosto no enquadramento.";
+  })();
+
   return (
     <div className="modalBackdrop cameraModalBackdrop" role="dialog" aria-modal="true">
-      <div className="modal cameraModal">
-        <div className="row cameraModalHeader">
-          <h2>Camera</h2>
-          {hideCloseButton ? null : (
-            <button className="secondary" onClick={onClose}>
-              Fechar
-            </button>
-          )}
+      <div className={["modal", "cameraModal", "biometricTerminal", hideCloseButton ? "biometricTerminalKiosk" : ""].filter(Boolean).join(" ")}>
+        <div className="biometricTop">
+          <div>
+            <h2>Terminal de reconhecimento</h2>
+            <p>Registro facial de presença em tempo real.</p>
+          </div>
+          <div className="biometricTopActions">
+            <span className={["statusBadge", terminalStatusClass].join(" ")}>{terminalStatusLabel}</span>
+            {hideCloseButton ? null : (
+              <button className="secondary" onClick={onClose}>
+                Fechar
+              </button>
+            )}
+          </div>
         </div>
         <div className="spacer" />
         {error ? (
@@ -182,47 +220,61 @@ export default function CameraModal({
             <div className="spacer" />
           </>
         ) : null}
-        <div
-          className={["videoStage", "cameraVideoStage", stageStatusClass].filter(Boolean).join(" ")}
-        >
-          <video ref={videoRef} autoPlay playsInline />
-          {faceBox ? (
-            <div
-              className="faceBox"
-              style={{
-                left: `${faceBox.leftPct}%`,
-                top: `${faceBox.topPct}%`,
-                width: `${faceBox.widthPct}%`,
-                height: `${faceBox.heightPct}%`
-              }}
-            />
-          ) : (
-            <div className="faceBox faceBox--placeholder" />
-          )}
+        <div className="biometricStageWrap">
+          <div
+            className={["videoStage", "cameraVideoStage", stageStatusClass].filter(Boolean).join(" ")}
+          >
+            <video ref={videoRef} autoPlay playsInline />
+            {faceBox ? (
+              <div
+                className="faceBox"
+                style={{
+                  left: `${faceBox.leftPct}%`,
+                  top: `${faceBox.topPct}%`,
+                  width: `${faceBox.widthPct}%`,
+                  height: `${faceBox.heightPct}%`
+                }}
+              />
+            ) : (
+              <div className="faceBox faceBox--placeholder" />
+            )}
 
-          {faceBox ? (
-            <div
-              className={["faceCard", cardToneClass].join(" ")}
-              style={{
-                left: `${cardLeftPct}%`,
-                top: `${faceBox.topPct}%`,
-                transform:
-                  cardSide === "left"
-                    ? "translate(calc(-100% - 12px), 0)"
-                    : "translate(12px, 0)"
-              }}
-            >
-              <div className="faceCardKicker">
-                {recognizing || busy ? "Reconhecendo..." : cardText.kicker}
+            {faceBox ? (
+              <div
+                className={["faceCard", cardToneClass].join(" ")}
+                style={{
+                  left: `${cardLeftPct}%`,
+                  top: `${faceBox.topPct}%`,
+                  transform:
+                    cardSide === "left"
+                      ? "translate(calc(-100% - 12px), 0)"
+                      : "translate(12px, 0)"
+                }}
+              >
+                <div className="faceCardKicker">
+                  {recognizing || busy ? "Reconhecendo..." : cardText.kicker}
+                </div>
+                <div className="faceCardTitle">
+                  {recognizing || busy ? "Aguarde" : cardText.title}
+                </div>
+                <div className="faceCardSubtitle">
+                  {recognizing || busy ? "" : cardText.subtitle}
+                </div>
               </div>
-              <div className="faceCardTitle">
-                {recognizing || busy ? "Aguarde" : cardText.title}
-              </div>
-              <div className="faceCardSubtitle">
-                {recognizing || busy ? "" : cardText.subtitle}
-              </div>
+            ) : null}
+          </div>
+
+          <aside className="biometricStatusPanel">
+            <div>
+              <span className={["statusBadge", terminalStatusClass].join(" ")}>{terminalStatusLabel}</span>
+              <strong>{terminalTitle}</strong>
+              <span>{terminalSubtitle}</span>
             </div>
-          ) : null}
+            <div className="biometricSignal">
+              <small>Detector local</small>
+              <b>{engine === "loading" ? "Carregando" : engine === "none" ? "Indisponível" : faceBox ? "Rosto no quadro" : "Procurando rosto"}</b>
+            </div>
+          </aside>
         </div>
         <div className="spacer" />
         {actionResult ? (
@@ -233,7 +285,7 @@ export default function CameraModal({
             <div className="spacer" />
           </>
         ) : null}
-        <div className="row cameraActions">
+        <div className="biometricActions cameraActions">
           <button onClick={capture} disabled={busy}>
             {busy ? "Enviando..." : "Capturar"}
           </button>
@@ -246,7 +298,7 @@ export default function CameraModal({
               {confirming ? "Confirmando..." : "Confirmar presença"}
             </button>
           ) : null}
-          <small className="muted cameraHint">
+          <small className="biometricHint cameraHint">
             Dica: luz frontal + rosto centralizado.
             {engine === "loading" ? <> (Carregando detector...)</> : null}
             {engine === "none" ? <> (Deteccao de rosto indisponivel.)</> : null}

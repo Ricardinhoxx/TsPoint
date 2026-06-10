@@ -405,25 +405,56 @@ export default function MinhaUnidadePage() {
     setCameraOpen(true);
   }
 
+  const totalFuncionarios = funcionarios.length;
+  const faceReadyCount = funcionarios.filter((f) => Number(f.face_embeddings ?? 0) > 0).length;
+  const missingFaceCount = Math.max(0, totalFuncionarios - faceReadyCount);
+  const activeCount = funcionarios.filter((f) => f.status.toUpperCase() === "ATIVO").length;
+  const turnoCount = new Set(funcionarios.map((f) => f.turno)).size;
+  const faceReadyPercent = totalFuncionarios ? Math.round((faceReadyCount / totalFuncionarios) * 100) : 0;
+
+  function initials(nome: string) {
+    return nome
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? "")
+      .join("");
+  }
+
+  function localLabel(localTipo: LocalTipo) {
+    if (localTipo === "ESCRITORIO") return "Escritório";
+    if (localTipo === "CD") return "CD";
+    return "Unidade";
+  }
+
+  function funcionarioStatusClass(status: string) {
+    return status.toUpperCase() === "ATIVO" ? "statusBadgeOk" : "statusBadgeNeutral";
+  }
+
   return (
-    <div>
-      <section className="hero">
+    <div className="opsPage">
+      <section className="opsHero">
         <div className="containerWide">
-          <div className="row unidadeHeroTop">
+          <div className="opsHeroInner">
             <div>
-              <h1 style={{ margin: 0 }}>Minha unidade</h1>
-              <div>
-                <small className="muted">Função: {roleLabel}</small>
-              </div>
-              <div>
-                <small className="muted">
-                  Unidade responsável: {unidadeResponsavel}
-                  {unidade?.id ? ` (id=${unidade.id})` : ""}
-                </small>
+              <p className="opsKicker">Operação de ponto</p>
+              <h1 className="opsTitle">Minha unidade</h1>
+              <p className="opsSubtitle">
+                Controle diário de colaboradores, base facial e registros manuais da operação.
+              </p>
+              <div className="opsMetaRow">
+                <span className="statusBadge statusBadgeInfo">{roleLabel}</span>
+                <span className="statusBadge statusBadgeNeutral">
+                  {unidadeResponsavel}
+                  {unidade?.id ? ` | id=${unidade.id}` : ""}
+                </span>
+                <span className={["statusBadge", missingFaceCount ? "statusBadgeWarn" : "statusBadgeOk"].join(" ")}>
+                  {missingFaceCount ? `${missingFaceCount} sem base facial` : "Bases faciais prontas"}
+                </span>
               </div>
             </div>
 
-            <div className="row unidadeTopActions">
+            <div className="opsHeroActions unidadeTopActions">
               <div className="brandLockup" aria-label="Bemol">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img className="brandLogo brandLogoApp" src="/brand/app-logo-highlight.png" alt="Digitaliza Sodexo" />
@@ -435,10 +466,9 @@ export default function MinhaUnidadePage() {
             </div>
           </div>
 
-          <div className="spacer" />
-          <div className="row unidadeNavBar">
-            <h2 style={{ margin: 0 }}>Usuários</h2>
-            <div className="row desktopNavActions">
+          <div className="opsActionBar unidadeNavBar">
+            <h2 className="opsActionTitle">Centro de comando</h2>
+            <div className="desktopNavActions opsDesktopActions">
               {role === "ADMIN" ? (
                 <Link className="btnLink secondary" href="/unidade/admin">
                   Admin: atribuições
@@ -448,7 +478,7 @@ export default function MinhaUnidadePage() {
                 Cadastrar colaborador
               </Link>
               <Link className="btnLink secondary" href="/unidade/presenca">
-                Pontos
+                Ver pontos
               </Link>
               <button className="secondary" onClick={openDiaristaModal}>
                 Registrar diarista
@@ -512,90 +542,117 @@ export default function MinhaUnidadePage() {
             </div>
           </div>
 
-          <div className="spacer" />
+          <div className="opsQuickGrid">
+            <div className="opsMetricCard" data-tone="info">
+              <small>Colaboradores</small>
+              <strong>{totalFuncionarios}</strong>
+              <span>{activeCount} ativos na operação</span>
+            </div>
+            <div className="opsMetricCard" data-tone={missingFaceCount ? "warn" : "ok"}>
+              <small>Base facial</small>
+              <strong>{faceReadyPercent}%</strong>
+              <span>{faceReadyCount} cadastradas, {missingFaceCount} pendentes</span>
+            </div>
+            <div className="opsMetricCard" data-tone="info">
+              <small>Turnos cobertos</small>
+              <strong>{turnoCount}</strong>
+              <span>Escalas ativas na unidade</span>
+            </div>
+            <div className="opsMetricCard" data-tone={loadError ? "warn" : "ok"}>
+              <small>Serviço</small>
+              <strong>{loadError ? "Atenção" : "Online"}</strong>
+              <span>{loadError ? "Verifique os alertas abaixo" : "Pronto para registrar ponto"}</span>
+            </div>
+          </div>
+
           {manageResult ? (
             <>
               <div className="card">{manageResult}</div>
               <div className="spacer" />
             </>
           ) : null}
-          <div className="tableShell">
-            <table>
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>Turno</th>
-                  <th>Horário previsto</th>
-                  <th>Unidade (cadastro)</th>
-                  <th>Status</th>
-                  <th>Base facial</th>
-                  {role === "ADMIN" ? <th>Ações</th> : null}
-                </tr>
-              </thead>
-              <tbody>
-                {funcionarios.map((f) => (
-                  <tr key={f.id}>
-                    <td>{f.nome}</td>
-                    <td>{f.turno}</td>
-                    <td>
-                      {(f.hora_entrada_prevista || DEFAULT_HORA_ENTRADA)} - {(f.hora_saida_prevista || DEFAULT_HORA_SAIDA)}
-                    </td>
-                    <td>
-                      <span className="storeChip">{f.unidade_nome ?? "Unidade não definida"}</span>{" "}
-                      {role === "ADMIN" ? (
-                        <small className="muted">id={f.unidade_id}</small>
-                      ) : null}
-                    </td>
-                    <td>{f.status}</td>
-                    <td>{(f.face_embeddings ?? 0) > 0 ? `Cadastrada (${f.face_embeddings})` : "Não cadastrada"}</td>
-                    {role === "ADMIN" ? (
-                      <td>
-                        {pendingDeleteId === f.id ? (
-                          <div className="row" style={{ gap: 8 }}>
-                            <small className="muted">Deseja mesmo prosseguir com a exclusão?</small>
-                            <button
-                              className="secondary"
-                              onClick={() => setPendingDeleteId(null)}
-                              disabled={deletingId === f.id}
-                            >
-                              Cancelar
-                            </button>
-                            <button
-                              onClick={() => deleteFuncionario(f)}
-                              disabled={deletingId === f.id}
-                            >
-                              {deletingId === f.id ? "Apagando..." : "Excluir padrão"}
-                            </button>
-                            <button
-                              onClick={() => deleteFuncionario(f, true)}
-                              disabled={deletingId === f.id}
-                            >
-                              {deletingId === f.id ? "Apagando..." : "Excluir definitivo"}
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            className="secondary"
-                            onClick={() => setPendingDeleteId(f.id)}
-                            disabled={Boolean(deletingId)}
-                          >
-                            Apagar
-                          </button>
-                        )}
-                      </td>
-                    ) : null}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         </div>
       </section>
 
-      <div className="container">
-        <div className="spacer" />
-        <div className="card">
-          <h2 style={{ marginTop: 0 }}>Último reconhecimento</h2>
+      <div className="containerWide opsContent">
+        <div className="opsPanelGrid">
+          <section className="opsPanel">
+            <div className="opsPanelHeader">
+              <div>
+                <h2>Escala operacional</h2>
+                <p>Colaboradores vinculados, jornada prevista e prontidão facial.</p>
+              </div>
+              <span className="statusBadge statusBadgeNeutral">{totalFuncionarios} registros</span>
+            </div>
+
+            {funcionarios.length ? (
+              <div className="opsRoster">
+                {funcionarios.map((f) => {
+                  const hasFace = Number(f.face_embeddings ?? 0) > 0;
+                  return (
+                    <div className="opsRosterItem" key={f.id}>
+                      <span className="opsAvatar" aria-hidden="true">{initials(f.nome)}</span>
+                      <div>
+                        <div className="opsRosterName">{f.nome}</div>
+                        <div className="opsRosterMeta">
+                          Turno {f.turno} | {localLabel(f.local_tipo)} |{" "}
+                          {(f.hora_entrada_prevista || DEFAULT_HORA_ENTRADA)} - {(f.hora_saida_prevista || DEFAULT_HORA_SAIDA)}
+                          {role === "ADMIN" ? ` | ${f.unidade_nome ?? `id=${f.unidade_id}`}` : ""}
+                        </div>
+                      </div>
+                      <div className="opsBadgeStack">
+                        <span className={["statusBadge", funcionarioStatusClass(f.status)].join(" ")}>{f.status}</span>
+                        <span className={["statusBadge", hasFace ? "statusBadgeOk" : "statusBadgeWarn"].join(" ")}>
+                          {hasFace ? `Face ${f.face_embeddings}` : "Sem face"}
+                        </span>
+                        {role === "ADMIN" ? (
+                          pendingDeleteId === f.id ? (
+                            <div className="opsAdminActions">
+                              <button
+                                className="secondary"
+                                onClick={() => setPendingDeleteId(null)}
+                                disabled={deletingId === f.id}
+                              >
+                                Cancelar
+                              </button>
+                              <button onClick={() => deleteFuncionario(f)} disabled={deletingId === f.id}>
+                                {deletingId === f.id ? "Apagando..." : "Excluir"}
+                              </button>
+                              <button onClick={() => deleteFuncionario(f, true)} disabled={deletingId === f.id}>
+                                {deletingId === f.id ? "Apagando..." : "Definitivo"}
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              className="secondary"
+                              onClick={() => setPendingDeleteId(f.id)}
+                              disabled={Boolean(deletingId)}
+                            >
+                              Apagar
+                            </button>
+                          )
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="opsEmptyState">Nenhum colaborador carregado para esta unidade.</div>
+            )}
+          </section>
+
+          <section className="opsPanel">
+            <div className="opsPanelHeader">
+              <div>
+                <h2>Último reconhecimento</h2>
+                <p>Resultado da última captura feita por câmera.</p>
+              </div>
+              <span className={["statusBadge", recognizing ? "statusBadgeInfo" : match?.matched ? "statusBadgeOk" : match ? "statusBadgeWarn" : "statusBadgeNeutral"].join(" ")}>
+                {recognizing ? "Reconhecendo" : match?.matched ? "Identificado" : match ? "Sem match" : "Aguardando"}
+              </span>
+            </div>
+
           {loadError ? (
             <>
               <div className="card" style={{ borderColor: "#b91c1c" }}>
@@ -605,28 +662,38 @@ export default function MinhaUnidadePage() {
             </>
           ) : null}
 
-          {recognizing ? (
-            <p>Reconhecendo...</p>
-          ) : match ? (
-            match.matched ? (
-              <>
-                <p>
-                  Match: <b>{match.nome ?? matchedFuncionario?.nome ?? "?"}</b>{" "}
-                  <small className="muted">
-                    (unidade: {match.unidade_nome ?? (match.unidade_id ? `id=${match.unidade_id}` : "n/a")}
-                    {role === "ADMIN" ? ` | score=${match.score?.toFixed(3) ?? "n/a"}` : ""})
-                  </small>
-                </p>
-                <button onClick={confirmPonto}>Confirmar presença</button>
-              </>
-            ) : (
-              <p>Nenhum match acima do limiar.</p>
-            )
-          ) : (
-            <p>
-              <small className="muted">Abra a câmera e capture um frame.</small>
-            </p>
-          )}
+            <div className="opsRecognitionState">
+              {recognizing ? (
+                <>
+                  <span className="statusBadge statusBadgeInfo">Processando</span>
+                  <div className="opsRecognitionName">Reconhecendo rosto...</div>
+                  <p>Aguarde a validação facial antes de confirmar o registro.</p>
+                </>
+              ) : match?.matched ? (
+                <>
+                  <span className="statusBadge statusBadgeOk">Match encontrado</span>
+                  <div className="opsRecognitionName">{match.nome ?? matchedFuncionario?.nome ?? "Colaborador identificado"}</div>
+                  <p>
+                    {match.unidade_nome ?? (match.unidade_id ? `Unidade id=${match.unidade_id}` : "Unidade não informada")}
+                    {role === "ADMIN" ? ` | score=${match.score?.toFixed(3) ?? "n/a"}` : ""}
+                  </p>
+                  <button onClick={confirmPonto}>Confirmar presença</button>
+                </>
+              ) : match ? (
+                <>
+                  <span className="statusBadge statusBadgeWarn">Sem correspondência</span>
+                  <div className="opsRecognitionName">Nenhum colaborador identificado</div>
+                  <p>Confira iluminação, enquadramento e se a base facial foi cadastrada.</p>
+                </>
+              ) : (
+                <>
+                  <span className="statusBadge statusBadgeNeutral">Aguardando câmera</span>
+                  <div className="opsRecognitionName">Pronto para registrar ponto</div>
+                  <p>Abra a câmera e capture um frame frontal do colaborador.</p>
+                  <button onClick={openCameraModal}>Registrar por câmera</button>
+                </>
+              )}
+            </div>
 
           {pontoResult ? (
             <>
@@ -634,14 +701,20 @@ export default function MinhaUnidadePage() {
               <div className="card">{pontoResult}</div>
             </>
           ) : null}
+          </section>
         </div>
 
         <div className="spacer" />
 
-        <div className="card">
-          <h2 style={{ marginTop: 0 }}>Ajuste manual de ponto</h2>
-          <div className="row" style={{ alignItems: "flex-end", flexWrap: "wrap" }}>
-            <div style={{ minWidth: 260, flex: 1 }}>
+        <section className="opsPanel">
+          <div className="opsPanelHeader">
+            <div>
+              <h2>Ajuste manual de ponto</h2>
+              <p>Manutenção administrativa para correções auditáveis de registro.</p>
+            </div>
+          </div>
+          <div className="opsFormGrid">
+            <div>
               <label>Buscar colaborador</label>
               <input
                 list="ajuste-colaboradores"
@@ -655,7 +728,7 @@ export default function MinhaUnidadePage() {
                 ))}
               </datalist>
             </div>
-            <div style={{ minWidth: 260, flex: 1 }}>
+            <div>
               <label>Colaborador (lista)</label>
               <select
                 value={ajusteFuncionarioId ? String(ajusteFuncionarioId) : ""}
@@ -773,7 +846,7 @@ export default function MinhaUnidadePage() {
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
 
         {cameraOpen ? (
           <CameraModal

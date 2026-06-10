@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 type Unidade = { id: number; nome: string };
 type Supervisor = { id: number; email: string; role: "ADMIN" | "SUPERVISOR"; unidade_id: number };
+type AdminTab = "ACCESS" | "UNITS" | "PEOPLE";
 type Funcionario = {
   id: number;
   nome: string;
@@ -79,6 +80,7 @@ export default function AdminAssignmentsPage() {
   const [pontoAccessExpiresAt, setPontoAccessExpiresAt] = useState("");
   const [creatingPontoAccess, setCreatingPontoAccess] = useState(false);
   const [revokingPontoAccessId, setRevokingPontoAccessId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<AdminTab>("ACCESS");
 
   const unidadeMap = useMemo(() => {
     return new Map(unidades.map((u) => [u.id, u.nome]));
@@ -521,20 +523,20 @@ export default function AdminAssignmentsPage() {
   }
 
   return (
-    <div className="containerWide">
-      <div className="row" style={{ justifyContent: "space-between" }}>
+    <div className="containerWide flowPage">
+      <div className="flowHeader">
         <div>
-          <h1 style={{ margin: 0 }}>Admin - Funções e atribuições</h1>
-          <small className="muted">
-            Defina papel e unidade para supervisores e unidade para colaboradores.
-          </small>
+          <p className="opsKicker">Console administrativo</p>
+          <h1>Funções e atribuições</h1>
+          <div className="opsMetaRow">
+            <span className="statusBadge statusBadgeInfo">{unidades.length} unidades</span>
+            <span className="statusBadge statusBadgeNeutral">{pagination.total} colaboradores</span>
+          </div>
         </div>
         <Link className="btnLink secondary" href="/unidade">
           Voltar
         </Link>
       </div>
-
-      <div className="spacer" />
 
       {error ? (
         <div className="card" style={{ borderColor: "#8a1f1f" }}>
@@ -550,8 +552,32 @@ export default function AdminAssignmentsPage() {
         </>
       ) : null}
 
-      <div className="spacer" />
+      <nav className="adminTabs" aria-label="Áreas administrativas">
+        <button
+          type="button"
+          className={["adminTab", activeTab === "ACCESS" ? "isActive" : ""].join(" ").trim()}
+          onClick={() => setActiveTab("ACCESS")}
+        >
+          Acessos de ponto
+        </button>
+        <button
+          type="button"
+          className={["adminTab", activeTab === "UNITS" ? "isActive" : ""].join(" ").trim()}
+          onClick={() => setActiveTab("UNITS")}
+        >
+          Unidades
+        </button>
+        <button
+          type="button"
+          className={["adminTab", activeTab === "PEOPLE" ? "isActive" : ""].join(" ").trim()}
+          onClick={() => setActiveTab("PEOPLE")}
+        >
+          Pessoas
+        </button>
+      </nav>
 
+      {activeTab === "ACCESS" ? (
+      <section className="adminSection">
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Links de tablet por unidade</h2>
         <div className="row" style={{ alignItems: "flex-end", flexWrap: "wrap" }}>
@@ -725,9 +751,11 @@ export default function AdminAssignmentsPage() {
           </table>
         </div>
       </div>
+      </section>
+      ) : null}
 
-      <div className="spacer" />
-
+      {activeTab === "UNITS" ? (
+      <section className="adminSection">
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Criar unidade</h2>
         <div className="row" style={{ alignItems: "flex-end", flexWrap: "wrap" }}>
@@ -744,8 +772,6 @@ export default function AdminAssignmentsPage() {
           </button>
         </div>
       </div>
-
-      <div className="spacer" />
 
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Apagar unidade</h2>
@@ -773,9 +799,11 @@ export default function AdminAssignmentsPage() {
           Obs.: unidades em uso por supervisores, colaboradores ou pontos não podem ser apagadas.
         </small>
       </div>
+      </section>
+      ) : null}
 
-      <div className="spacer" />
-
+      {activeTab === "PEOPLE" ? (
+      <section className="adminSection">
       <div className="card">
         <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap" }}>
           <h2 style={{ marginTop: 0, marginBottom: 0 }}>Filtros</h2>
@@ -1040,6 +1068,8 @@ export default function AdminAssignmentsPage() {
           </div>
         </div>
       </div>
+      </section>
+      ) : null}
     </div>
   );
 }
