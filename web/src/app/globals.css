@@ -44,23 +44,23 @@
 }
 
 :root[data-theme="dark"] {
-  --color-bg: #0f172a;
-  --color-surface: #172033;
-  --color-surface-soft: #1e293b;
-  --color-text: #f8fafc;
-  --color-muted: #cbd5e1;
-  --color-border: #475569;
-  --color-border-soft: #334155;
-  --color-primary: #60a5fa;
-  --color-primary-hover: #93c5fd;
-  --color-primary-contrast: #0f172a;
+  --color-bg: #10141d;
+  --color-surface: #182031;
+  --color-surface-soft: #131a28;
+  --color-text: #f5f7fb;
+  --color-muted: #aeb8c9;
+  --color-border: #536079;
+  --color-border-soft: #2d394f;
+  --color-primary: #74b3ff;
+  --color-primary-hover: #9ac8ff;
+  --color-primary-contrast: #08111f;
   --color-accent: #34d399;
   --color-danger: #f87171;
   --color-warning: #fbbf24;
-  --color-focus-ring: rgba(96, 165, 250, 0.38);
+  --color-focus-ring: rgba(116, 179, 255, 0.36);
   --color-brand-dark: #f8fafc;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.28);
-  --shadow-md: 0 14px 30px rgba(0, 0, 0, 0.38);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.34), 0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+  --shadow-md: 0 18px 44px rgba(0, 0, 0, 0.42);
 }
 
 html,
@@ -72,6 +72,7 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
   line-height: 1.45;
+  min-height: 100vh;
 }
 
 h1,
@@ -188,9 +189,22 @@ button.secondary:hover:not(:disabled) {
 
 :root[data-theme="dark"] button.secondary:hover:not(:disabled),
 :root[data-theme="dark"] .btnLink.secondary:hover {
-  background: #24324a;
-  color: #dbeafe;
-  border-color: #60a5fa;
+  background: #22304a;
+  color: #eef6ff;
+  border-color: #74b3ff;
+}
+
+:root[data-theme="dark"] button,
+:root[data-theme="dark"] .btnLink {
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+}
+
+:root[data-theme="dark"] button.secondary,
+:root[data-theme="dark"] .btnLink.secondary {
+  background: #151d2c;
+  border-color: #3a4860;
+  color: #f5f7fb;
+  box-shadow: none;
 }
 
 .themeToggle {
@@ -217,6 +231,19 @@ select {
   background: var(--color-surface);
   color: var(--color-text);
   box-shadow: 0 1px 0 rgba(16, 24, 40, 0.02);
+}
+
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] select {
+  background: #121a28;
+  border-color: #44516a;
+  color: #f5f7fb;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset;
+}
+
+:root[data-theme="dark"] input::placeholder {
+  color: #7f8ba0;
+  opacity: 1;
 }
 
 button:focus-visible,
@@ -269,6 +296,14 @@ th {
   text-transform: uppercase;
 }
 
+:root[data-theme="dark"] tbody tr {
+  background: #151d2c;
+}
+
+:root[data-theme="dark"] tbody tr:nth-child(even) {
+  background: #172132;
+}
+
 tbody tr:hover {
   background: #f8fbff;
 }
@@ -288,6 +323,12 @@ small.muted {
   font-weight: 600;
   border: 1px solid #c7d7fe;
   border-radius: 999px;
+}
+
+:root[data-theme="dark"] .storeChip {
+  background: rgba(116, 179, 255, 0.12);
+  border-color: rgba(116, 179, 255, 0.38);
+  color: #cfe6ff;
 }
 
 .modalBackdrop {
@@ -1590,6 +1631,12 @@ video {
   white-space: nowrap;
 }
 
+:root[data-theme="dark"] .brandLockup {
+  background: #f8fafc;
+  border-color: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.28);
+}
+
 .presencePersonStatusOk {
   background: #ecfdf3;
   border-color: #86efac;
@@ -1892,6 +1939,38 @@ video {
 :root[data-theme="dark"] .presenceDaySelected {
   background: #1e3a5f !important;
   border-color: #60a5fa !important;
+}
+
+:root[data-theme="dark"] .hero {
+  background:
+    radial-gradient(circle at 82% 18%, rgba(116, 179, 255, 0.12), transparent 32%),
+    linear-gradient(180deg, #182133 0%, #141c2b 100%);
+  border-bottom-color: #324159;
+}
+
+:root[data-theme="dark"] .card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0)),
+    var(--color-surface);
+  border-color: #344159;
+}
+
+:root[data-theme="dark"] .tableShell {
+  background: #121a28;
+  border-color: #36445d;
+}
+
+:root[data-theme="dark"] th {
+  background: #dfe6f0;
+  color: #1f2a3d;
+}
+
+:root[data-theme="dark"] td {
+  color: #d9e1ee;
+}
+
+:root[data-theme="dark"] tbody tr:hover {
+  background: #22304a;
 }
 
 @media (max-width: 1120px) {
