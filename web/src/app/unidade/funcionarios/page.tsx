@@ -30,6 +30,18 @@ type FuncionarioMetricas = {
   percentual_presenca: number;
 };
 
+type FuncionarioFrequenciaDay = {
+  day: string;
+  present: boolean;
+  first_ts: string | null;
+  last_ts: string | null;
+  total: number;
+  entradas: number;
+  saidas: number;
+  is_incomplete: boolean;
+  status_day: "PRESENT" | "PENDING" | "ABSENT";
+};
+
 function currentMonthOnly() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -40,6 +52,45 @@ function fmtMinutes(total: number) {
   const hours = Math.floor(safe / 60);
   const minutes = safe % 60;
   return `${hours}h${String(minutes).padStart(2, "0")}`;
+}
+
+function fmtTime(value: string | null) {
+  if (!value) return "--:--";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "--:--";
+  return new Intl.DateTimeFormat("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
+}
+
+function fmtDay(dateOnly: string) {
+  const date = new Date(`${dateOnly}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return dateOnly;
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit"
+  }).format(date);
+}
+
+function fmtWeekday(dateOnly: string) {
+  const date = new Date(`${dateOnly}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("pt-BR", {
+    weekday: "short"
+  })
+    .format(date)
+    .replace(".", "");
+}
+
+function monthLabel(month: string) {
+  const [year, rawMonth] = month.split("-").map(Number);
+  const date = new Date(year, (rawMonth || 1) - 1, 1);
+  if (Number.isNaN(date.getTime())) return month;
+  return new Intl.DateTimeFormat("pt-BR", {
+    month: "long",
+    year: "numeric"
+  }).format(date);
 }
 
 function initials(nome: string) {
@@ -64,6 +115,20 @@ function localLabel(local: string) {
   return "Unidade";
 }
 
+function dayTone(day: FuncionarioFrequenciaDay) {
+  if (day.is_incomplete) return "isIncomplete";
+  if (day.status_day === "PRESENT") return "isPresent";
+  if (day.status_day === "PENDING") return "isPending";
+  return "isAbsent";
+}
+
+function dayStatusLabel(day: FuncionarioFrequenciaDay) {
+  if (day.is_incomplete) return "Incompleto";
+  if (day.status_day === "PRESENT") return "Presente";
+  if (day.status_day === "PENDING") return "Pendente";
+  return "Falta";
+}
+
 export default function FuncionariosPage() {
   const [role, setRole] = useState<"ADMIN" | "SUPERVISOR">("SUPERVISOR");
   const [unidades, setUnidades] = useState<Unidade[]>([]);
@@ -72,6 +137,10 @@ export default function FuncionariosPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "ATIVO" | "ATENCAO">("ALL");
   const [funcionarios, setFuncionarios] = useState<FuncionarioMetricas[]>([]);
+  const [selectedFuncionarioId, setSelectedFuncionarioId] = useState<number | null>(null);
+  const [frequenciaDays, setFrequenciaDays] = useState<FuncionarioFrequenciaDay[]>([]);
+  const [frequencyLoading, setFrequencyLoading] = useState(false);
+  const [frequencyError, setFrequencyError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -136,6 +205,64 @@ export default function FuncionariosPage() {
     });
   }, [funcionarios, search, statusFilter]);
 
+  useEffect(() => {
+    if (filtered.length === 0) {
+      setSelectedFuncionarioId(null);
+      return;
+    }
+
+    if (!selectedFuncionarioId || !filtered.some((f) => f.id === selectedFuncionarioId)) {
+      setSelectedFuncionarioId(filtered[0].id);
+    }
+  }, [filtered, selectedFuncionarioId]);
+
+  const selectedFuncionario = useMemo(
+    () => filtered.find((f) => f.id === selectedFuncionarioId) ?? null,
+    [filtered, selectedFuncionarioId]
+  );
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadFrequencia() {
+      if (!selectedFuncionarioId) {
+        setFrequenciaDays([]);
+        setFrequencyError(null);
+        return;
+      }
+
+      setFrequencyLoading(true);
+      setFrequencyError(null);
+      try {
+        const qs = new URLSearchParams();
+        qs.set("funcionario_id", String(selectedFuncionarioId));
+        qs.set("period", "MONTH");
+        qs.set("ref_date", `${month}-01`);
+        if (unidadeId !== "ALL") qs.set("unidade_id", String(unidadeId));
+        const res = await fetch(`/api/presenca?${qs.toString()}`, { cache: "no-store" });
+        if (res.status === 401) {
+          window.location.href = "/login";
+          return;
+        }
+        const data = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
+        if (alive) setFrequenciaDays(Array.isArray(data?.days) ? data.days : []);
+      } catch (e) {
+        if (alive) {
+          setFrequenciaDays([]);
+          setFrequencyError(e instanceof Error ? e.message : "Erro ao carregar frequência.");
+        }
+      } finally {
+        if (alive) setFrequencyLoading(false);
+      }
+    }
+
+    loadFrequencia().catch(() => null);
+    return () => {
+      alive = false;
+    };
+  }, [month, selectedFuncionarioId, unidadeId]);
+
   const summary = useMemo(() => {
     const total = filtered.length;
     const totalMinutos = filtered.reduce((acc, f) => acc + Number(f.total_minutos || 0), 0);
@@ -147,27 +274,22 @@ export default function FuncionariosPage() {
     return { total, totalMinutos, totalExtra, faltas, presencaMedia };
   }, [filtered]);
 
+  const frequencySummary = useMemo(() => {
+    const presentes = frequenciaDays.filter((day) => day.status_day === "PRESENT").length;
+    const incompletos = frequenciaDays.filter((day) => day.is_incomplete).length;
+    const faltas = frequenciaDays.filter((day) => day.status_day === "ABSENT").length;
+    const pendentes = frequenciaDays.filter((day) => day.status_day === "PENDING").length;
+    return { presentes, incompletos, faltas, pendentes };
+  }, [frequenciaDays]);
+
   return (
     <div className="employeeDirectoryPage">
-      <aside className="employeeDirectorySidebar">
-        <div className="employeeDirectoryBrand">
-          <span>DS</span>
-          <strong>Digitaliza Sodexo</strong>
-        </div>
-        <nav className="employeeDirectoryNav" aria-label="Navegação de funcionários">
-          <Link href="/unidade">Minha unidade</Link>
-          <Link className="isActive" href="/unidade/funcionarios">Funcionários</Link>
-          <Link href="/unidade/presenca">Pontos</Link>
-          <Link href="/unidade/cadastrar">Cadastrar</Link>
-          {role === "ADMIN" ? <Link href="/unidade/admin">Admin</Link> : null}
-        </nav>
-      </aside>
-
       <main className="employeeDirectoryMain">
         <header className="employeeDirectoryTopbar">
           <div>
-            <p className="opsKicker">Gestão individual</p>
+            <p className="opsKicker">Gestão de equipe</p>
             <h1>Funcionários</h1>
+            <span>Frequência mensal, horas, extras e faltas por colaborador</span>
           </div>
           <div className="employeeDirectorySearch">
             <input
@@ -180,6 +302,16 @@ export default function FuncionariosPage() {
             Voltar
           </Link>
         </header>
+
+        <nav className="employeeDirectoryTabs" aria-label="Navegação da unidade">
+          <Link href="/unidade">Minha unidade</Link>
+          <Link className="isActive" href="/unidade/funcionarios">
+            Funcionários
+          </Link>
+          <Link href="/unidade/presenca">Pontos</Link>
+          <Link href="/unidade/cadastrar">Cadastro</Link>
+          {role === "ADMIN" ? <Link href="/unidade/admin">Admin</Link> : null}
+        </nav>
 
         <section className="employeeDirectoryFilters">
           <div>
@@ -215,7 +347,7 @@ export default function FuncionariosPage() {
           </Link>
         </section>
 
-        <section className="employeeDirectorySummary">
+        <section className="employeeDirectorySummary" aria-label="Resumo de funcionários">
           <div>
             <small>Funcionários</small>
             <strong>{summary.total}</strong>
@@ -238,12 +370,111 @@ export default function FuncionariosPage() {
           </div>
         </section>
 
-        {error ? <div className="card" style={{ borderColor: "#8a1f1f" }}>Erro: {error}</div> : null}
+        {error ? (
+          <div className="card" style={{ borderColor: "#8a1f1f" }}>
+            Erro: {error}
+          </div>
+        ) : null}
+
+        <section className="employeeDirectoryDetail" aria-live="polite">
+          {selectedFuncionario ? (
+            <>
+              <div className="employeeDetailHeader">
+                <div className="employeeDirectoryPerson employeeDirectoryPersonLarge">
+                  <span>{initials(selectedFuncionario.nome)}</span>
+                  <div>
+                    <h2>{selectedFuncionario.nome}</h2>
+                    <small>
+                      {selectedFuncionario.unidade_nome} | Turno {selectedFuncionario.turno} |{" "}
+                      {localLabel(selectedFuncionario.local_tipo)}
+                    </small>
+                  </div>
+                </div>
+                <span className={["statusBadge", statusTone(selectedFuncionario)].join(" ")}>
+                  {selectedFuncionario.status !== "ATIVO"
+                    ? selectedFuncionario.status
+                    : selectedFuncionario.faltas > 0
+                      ? "Atenção"
+                      : "Ativo"}
+                </span>
+              </div>
+
+              <div className="employeeDetailStats">
+                <div>
+                  <small>Horas feitas</small>
+                  <strong>{fmtMinutes(selectedFuncionario.total_minutos)}</strong>
+                </div>
+                <div>
+                  <small>Horas extras</small>
+                  <strong>{fmtMinutes(selectedFuncionario.hora_extra_minutos)}</strong>
+                </div>
+                <div>
+                  <small>Presença</small>
+                  <strong>{selectedFuncionario.percentual_presenca}%</strong>
+                </div>
+                <div>
+                  <small>Faltas</small>
+                  <strong>{selectedFuncionario.faltas}</strong>
+                </div>
+                <div>
+                  <small>Dias com ponto</small>
+                  <strong>{selectedFuncionario.dias_com_ponto}</strong>
+                </div>
+              </div>
+
+              <div className="employeeFrequencyHeader">
+                <div>
+                  <h3>Frequência</h3>
+                  <span>{monthLabel(month)}</span>
+                </div>
+                <div className="employeeFrequencyLegend" aria-label="Resumo da frequência selecionada">
+                  <span>{frequencySummary.presentes} presentes</span>
+                  <span>{frequencySummary.faltas} faltas</span>
+                  <span>{frequencySummary.pendentes} pendentes</span>
+                  {frequencySummary.incompletos > 0 ? <span>{frequencySummary.incompletos} incompletos</span> : null}
+                </div>
+              </div>
+
+              {frequencyError ? <p className="employeeDirectoryInlineError">Erro: {frequencyError}</p> : null}
+
+              <div className="employeeFrequencyGrid">
+                {frequencyLoading && frequenciaDays.length === 0 ? (
+                  <div className="employeeFrequencyEmpty">Carregando frequência...</div>
+                ) : frequenciaDays.length === 0 ? (
+                  <div className="employeeFrequencyEmpty">Sem frequência para o período.</div>
+                ) : (
+                  frequenciaDays.map((day) => (
+                    <article className={["employeeFrequencyDay", dayTone(day)].join(" ")} key={day.day}>
+                      <div>
+                        <strong>{fmtDay(day.day)}</strong>
+                        <span>{fmtWeekday(day.day)}</span>
+                      </div>
+                      <b>{dayStatusLabel(day)}</b>
+                      <small>
+                        {day.present
+                          ? `${fmtTime(day.first_ts)} - ${fmtTime(day.last_ts)} | ${day.total} registro${
+                              day.total === 1 ? "" : "s"
+                            }`
+                          : day.status_day === "PENDING"
+                            ? "Dia futuro"
+                            : "Sem ponto"}
+                      </small>
+                    </article>
+                  ))
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="employeeFrequencyEmpty">
+              {loading ? "Carregando funcionários..." : "Nenhum funcionário encontrado."}
+            </div>
+          )}
+        </section>
 
         <section className="employeeDirectoryPanel">
           <div className="employeeDirectoryPanelHeader">
             <div>
-              <h2>Relatório individual</h2>
+              <h2>Lista de colaboradores</h2>
               <span>{loading ? "Carregando..." : `${filtered.length} registros encontrados`}</span>
             </div>
             <button className="secondary" type="button" onClick={() => setStatusFilter("ATENCAO")}>
@@ -273,18 +504,22 @@ export default function FuncionariosPage() {
                   </tr>
                 ) : (
                   filtered.map((f) => (
-                    <tr key={f.id}>
+                    <tr className={selectedFuncionarioId === f.id ? "isSelected" : undefined} key={f.id}>
                       <td>
                         <div className="employeeDirectoryPerson">
                           <span>{initials(f.nome)}</span>
                           <div>
                             <strong>{f.nome}</strong>
-                            <small>Turno {f.turno} | {localLabel(f.local_tipo)}</small>
+                            <small>
+                              Turno {f.turno} | {localLabel(f.local_tipo)}
+                            </small>
                           </div>
                         </div>
                       </td>
                       <td>{f.unidade_nome}</td>
-                      <td>{f.hora_entrada_prevista ?? "08:00"} - {f.hora_saida_prevista ?? "17:00"}</td>
+                      <td>
+                        {f.hora_entrada_prevista ?? "08:00"} - {f.hora_saida_prevista ?? "17:00"}
+                      </td>
                       <td>{fmtMinutes(f.total_minutos)}</td>
                       <td>{fmtMinutes(f.hora_extra_minutos)}</td>
                       <td>{f.faltas}</td>
@@ -300,9 +535,14 @@ export default function FuncionariosPage() {
                         </span>
                       </td>
                       <td>
-                        <Link className="employeeTinyButton" href={`/unidade/presenca?funcionario_id=${f.id}`}>
-                          Ver
-                        </Link>
+                        <button
+                          className="employeeTinyButton"
+                          type="button"
+                          aria-pressed={selectedFuncionarioId === f.id}
+                          onClick={() => setSelectedFuncionarioId(f.id)}
+                        >
+                          Selecionar
+                        </button>
                       </td>
                     </tr>
                   ))
@@ -316,7 +556,10 @@ export default function FuncionariosPage() {
               <div className="employeeDirectoryCard">{loading ? "Carregando funcionários..." : "Nenhum funcionário encontrado."}</div>
             ) : (
               filtered.map((f) => (
-                <article className="employeeDirectoryCard" key={`card-${f.id}`}>
+                <article
+                  className={["employeeDirectoryCard", selectedFuncionarioId === f.id ? "isSelected" : ""].join(" ")}
+                  key={`card-${f.id}`}
+                >
                   <div className="employeeDirectoryCardTop">
                     <div className="employeeDirectoryPerson">
                       <span>{initials(f.nome)}</span>
@@ -325,22 +568,41 @@ export default function FuncionariosPage() {
                         <small>{f.unidade_nome}</small>
                       </div>
                     </div>
-                    <span className={["statusBadge", statusTone(f)].join(" ")}>
-                      {f.faltas > 0 ? "Atenção" : f.status}
-                    </span>
+                    <span className={["statusBadge", statusTone(f)].join(" ")}>{f.faltas > 0 ? "Atenção" : f.status}</span>
                   </div>
                   <div className="employeeDirectoryCardGrid">
-                    <span><small>Horas</small><b>{fmtMinutes(f.total_minutos)}</b></span>
-                    <span><small>Extras</small><b>{fmtMinutes(f.hora_extra_minutos)}</b></span>
-                    <span><small>Faltas</small><b>{f.faltas}</b></span>
-                    <span><small>Presença</small><b>{f.percentual_presenca}%</b></span>
+                    <span>
+                      <small>Horas</small>
+                      <b>{fmtMinutes(f.total_minutos)}</b>
+                    </span>
+                    <span>
+                      <small>Extras</small>
+                      <b>{fmtMinutes(f.hora_extra_minutos)}</b>
+                    </span>
+                    <span>
+                      <small>Faltas</small>
+                      <b>{f.faltas}</b>
+                    </span>
+                    <span>
+                      <small>Presença</small>
+                      <b>{f.percentual_presenca}%</b>
+                    </span>
                   </div>
                   <div className="employeePresenceBar">
                     <span style={{ width: `${Math.max(0, Math.min(100, Number(f.percentual_presenca || 0)))}%` }} />
                   </div>
                   <small className="muted">
-                    Turno {f.turno} | {f.hora_entrada_prevista ?? "08:00"} - {f.hora_saida_prevista ?? "17:00"} | Face {f.face_embeddings}
+                    Turno {f.turno} | {f.hora_entrada_prevista ?? "08:00"} - {f.hora_saida_prevista ?? "17:00"} | Face{" "}
+                    {f.face_embeddings}
                   </small>
+                  <button
+                    className="employeeTinyButton"
+                    type="button"
+                    aria-pressed={selectedFuncionarioId === f.id}
+                    onClick={() => setSelectedFuncionarioId(f.id)}
+                  >
+                    Selecionar
+                  </button>
                 </article>
               ))
             )}

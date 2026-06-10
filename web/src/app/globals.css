@@ -1947,71 +1947,22 @@ button.flowActionCard:hover:not(:disabled),
 
 .employeeDirectoryPage {
   min-height: 100vh;
-  background: #f3f4f8;
-  display: grid;
-  grid-template-columns: 250px minmax(0, 1fr);
-}
-
-.employeeDirectorySidebar {
-  background: #6f58c9;
-  color: #ffffff;
-  padding: 22px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 26px;
-}
-
-.employeeDirectoryBrand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.employeeDirectoryBrand span {
-  width: 34px;
-  height: 34px;
-  border: 1px solid rgba(255, 255, 255, 0.42);
-  border-radius: var(--radius-0);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-}
-
-.employeeDirectoryBrand strong {
-  font-size: 14px;
-  line-height: 1.2;
-}
-
-.employeeDirectoryNav {
-  display: grid;
-  gap: 6px;
-}
-
-.employeeDirectoryNav a {
-  color: rgba(255, 255, 255, 0.84);
-  text-decoration: none;
-  padding: 10px 12px;
-  border-radius: var(--radius-0);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.employeeDirectoryNav a:hover,
-.employeeDirectoryNav a.isActive {
-  background: rgba(255, 255, 255, 0.14);
-  color: #ffffff;
+  background: var(--color-bg);
 }
 
 .employeeDirectoryMain {
+  width: min(1180px, calc(100% - 32px));
   min-width: 0;
-  padding: 22px;
+  margin: 0 auto;
+  padding: 24px 0 34px;
+  display: grid;
+  gap: 14px;
 }
 
 .employeeDirectoryTopbar {
   min-height: 76px;
-  background: #ffffff;
-  border: 1px solid #e6ebf2;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-soft);
   border-radius: var(--radius-0);
   display: grid;
   grid-template-columns: auto minmax(260px, 1fr) auto;
@@ -2022,40 +1973,80 @@ button.flowActionCard:hover:not(:disabled),
 
 .employeeDirectoryTopbar h1 {
   margin: 0;
-  color: #172033;
+  color: var(--color-text);
   font-size: 26px;
   line-height: 1.1;
 }
 
+.employeeDirectoryTopbar span {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
 .employeeDirectorySearch input {
-  background: #f8fafc;
+  background: var(--color-surface-soft);
+}
+
+.employeeDirectoryTabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.employeeDirectoryTabs a {
+  flex: 0 0 auto;
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-0);
+  background: var(--color-surface);
+  color: var(--color-muted);
+  padding: 8px 12px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.employeeDirectoryTabs a:hover,
+.employeeDirectoryTabs a.isActive {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: #eef4ff;
 }
 
 .employeeDirectoryFilters {
-  margin-top: 14px;
   display: grid;
   grid-template-columns: 180px 220px 180px auto;
   gap: 10px;
   align-items: end;
 }
 
+.employeeDirectoryFilters .btnLink {
+  align-self: end;
+}
+
 .employeeDirectorySummary {
-  margin-top: 14px;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
 }
 
 .employeeDirectorySummary div {
-  background: #ffffff;
-  border: 1px solid #e6ebf2;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-soft);
   border-radius: var(--radius-0);
   padding: 12px;
+  box-shadow: var(--shadow-sm);
 }
 
 .employeeDirectorySummary small {
   display: block;
-  color: #667085;
+  color: var(--color-muted);
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
@@ -2064,17 +2055,188 @@ button.flowActionCard:hover:not(:disabled),
 .employeeDirectorySummary strong {
   display: block;
   margin-top: 4px;
-  color: #172033;
+  color: var(--color-text);
   font-size: 24px;
   line-height: 1.1;
 }
 
-.employeeDirectoryPanel {
-  margin-top: 14px;
-  background: #ffffff;
-  border: 1px solid #e6ebf2;
+.employeeDirectoryDetail {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-soft);
   border-radius: var(--radius-0);
   padding: 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+.employeeDetailHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.employeeDirectoryPersonLarge > span {
+  width: 46px;
+  height: 46px;
+  flex-basis: 46px;
+  font-size: 15px;
+}
+
+.employeeDirectoryPersonLarge h2 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 22px;
+  line-height: 1.18;
+}
+
+.employeeDetailStats {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.employeeDetailStats div {
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-0);
+  background: var(--color-surface-soft);
+  padding: 10px;
+}
+
+.employeeDetailStats small {
+  display: block;
+  color: var(--color-muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.employeeDetailStats strong {
+  display: block;
+  margin-top: 3px;
+  color: var(--color-text);
+  font-size: 20px;
+  line-height: 1.15;
+}
+
+.employeeFrequencyHeader {
+  margin-top: 16px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.employeeFrequencyHeader h3 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 18px;
+}
+
+.employeeFrequencyHeader span {
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.employeeFrequencyLegend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.employeeFrequencyLegend span {
+  border: 1px solid var(--color-border-soft);
+  border-radius: 999px;
+  background: var(--color-surface-soft);
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.employeeDirectoryInlineError {
+  margin: 12px 0 0;
+  color: var(--color-danger);
+  font-weight: 700;
+}
+
+.employeeFrequencyGrid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(146px, 1fr));
+  gap: 8px;
+}
+
+.employeeFrequencyDay,
+.employeeFrequencyEmpty {
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-0);
+  background: var(--color-surface-soft);
+  padding: 10px;
+}
+
+.employeeFrequencyEmpty {
+  grid-column: 1 / -1;
+  color: var(--color-muted);
+}
+
+.employeeFrequencyDay {
+  min-height: 104px;
+  border-left-width: 3px;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.employeeFrequencyDay div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.employeeFrequencyDay strong {
+  color: var(--color-text);
+  font-size: 16px;
+}
+
+.employeeFrequencyDay span,
+.employeeFrequencyDay small {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.employeeFrequencyDay b {
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+.employeeFrequencyDay.isPresent {
+  border-left-color: var(--color-accent);
+  background: #f0fdf4;
+}
+
+.employeeFrequencyDay.isAbsent {
+  border-left-color: var(--color-danger);
+  background: #fff5f4;
+}
+
+.employeeFrequencyDay.isPending {
+  border-left-color: var(--color-border);
+  background: var(--color-surface-soft);
+}
+
+.employeeFrequencyDay.isIncomplete {
+  border-left-color: var(--color-warning);
+  background: #fffbeb;
+}
+
+.employeeDirectoryPanel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-0);
+  padding: 14px;
+  box-shadow: var(--shadow-sm);
 }
 
 .employeeDirectoryPanelHeader {
@@ -2087,33 +2249,37 @@ button.flowActionCard:hover:not(:disabled),
 
 .employeeDirectoryPanelHeader h2 {
   margin: 0;
-  color: #172033;
+  color: var(--color-text);
   font-size: 22px;
 }
 
 .employeeDirectoryPanelHeader span {
-  color: #667085;
+  color: var(--color-muted);
   font-size: 13px;
 }
 
 .employeeDirectoryTableShell {
   overflow-x: auto;
-  border: 1px solid #e6ebf2;
+  border: 1px solid var(--color-border-soft);
   border-radius: var(--radius-0);
 }
 
 .employeeDirectoryTable {
-  min-width: 980px;
+  min-width: 1040px;
 }
 
 .employeeDirectoryTable th {
-  background: #f6f7fb;
-  color: #667085;
+  background: var(--color-surface-soft);
+  color: var(--color-muted);
 }
 
 .employeeDirectoryTable td {
-  color: #344054;
+  color: var(--color-text);
   font-size: 13px;
+}
+
+.employeeDirectoryTable tr.isSelected td {
+  background: #eef4ff;
 }
 
 .employeeDirectoryPerson {
@@ -2128,8 +2294,8 @@ button.flowActionCard:hover:not(:disabled),
   height: 34px;
   flex: 0 0 34px;
   border-radius: var(--radius-0);
-  background: #efeafe;
-  color: #5b43b5;
+  background: #eef4ff;
+  color: var(--color-primary-hover);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2139,14 +2305,14 @@ button.flowActionCard:hover:not(:disabled),
 
 .employeeDirectoryPerson strong {
   display: block;
-  color: #172033;
+  color: var(--color-text);
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
 
 .employeeDirectoryPerson small {
   display: block;
-  color: #667085;
+  color: var(--color-muted);
   margin-top: 2px;
 }
 
@@ -2162,21 +2328,35 @@ button.flowActionCard:hover:not(:disabled),
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: #6f58c9;
+  background: var(--color-primary);
 }
 
 .employeeTinyButton {
   display: inline-flex;
-  min-height: 28px;
+  min-height: 30px;
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  background: #6f58c9;
-  color: #ffffff;
-  padding: 5px 10px;
+  background: var(--color-surface);
+  color: var(--color-primary);
+  border: 1px solid var(--color-border);
+  padding: 5px 9px;
   text-decoration: none;
   font-size: 12px;
   font-weight: 800;
+  white-space: nowrap;
+}
+
+.employeeTinyButton:hover:not(:disabled) {
+  background: #eef4ff;
+  color: var(--color-primary-hover);
+  border-color: var(--color-primary);
+}
+
+.employeeTinyButton[aria-pressed="true"] {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+  border-color: var(--color-primary);
 }
 
 .employeeDirectoryCards {
@@ -2184,10 +2364,17 @@ button.flowActionCard:hover:not(:disabled),
 }
 
 .employeeDirectoryCard {
-  border: 1px solid #e6ebf2;
+  border: 1px solid var(--color-border-soft);
   border-radius: var(--radius-0);
-  background: #ffffff;
+  background: var(--color-surface);
   padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.employeeDirectoryCard.isSelected {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
 
 .employeeDirectoryCardTop {
@@ -2205,15 +2392,15 @@ button.flowActionCard:hover:not(:disabled),
 }
 
 .employeeDirectoryCardGrid span {
-  border: 1px solid #e6ebf2;
+  border: 1px solid var(--color-border-soft);
   border-radius: var(--radius-0);
-  background: #f8fafc;
+  background: var(--color-surface-soft);
   padding: 8px;
 }
 
 .employeeDirectoryCardGrid small {
   display: block;
-  color: #667085;
+  color: var(--color-muted);
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
@@ -2222,15 +2409,12 @@ button.flowActionCard:hover:not(:disabled),
 .employeeDirectoryCardGrid b {
   display: block;
   margin-top: 2px;
-  color: #172033;
-}
-
-:root[data-theme="dark"] .employeeDirectoryPage {
-  background: var(--color-bg);
+  color: var(--color-text);
 }
 
 :root[data-theme="dark"] .employeeDirectoryTopbar,
 :root[data-theme="dark"] .employeeDirectorySummary div,
+:root[data-theme="dark"] .employeeDirectoryDetail,
 :root[data-theme="dark"] .employeeDirectoryPanel,
 :root[data-theme="dark"] .employeeDirectoryCard {
   background: var(--color-surface);
@@ -2239,6 +2423,11 @@ button.flowActionCard:hover:not(:disabled),
 
 :root[data-theme="dark"] .employeeDirectoryTopbar h1,
 :root[data-theme="dark"] .employeeDirectorySummary strong,
+:root[data-theme="dark"] .employeeDirectoryPersonLarge h2,
+:root[data-theme="dark"] .employeeDetailStats strong,
+:root[data-theme="dark"] .employeeFrequencyHeader h3,
+:root[data-theme="dark"] .employeeFrequencyDay strong,
+:root[data-theme="dark"] .employeeFrequencyDay b,
 :root[data-theme="dark"] .employeeDirectoryPanelHeader h2,
 :root[data-theme="dark"] .employeeDirectoryPerson strong,
 :root[data-theme="dark"] .employeeDirectoryCardGrid b {
@@ -2246,7 +2435,13 @@ button.flowActionCard:hover:not(:disabled),
 }
 
 :root[data-theme="dark"] .employeeDirectoryTable td,
+:root[data-theme="dark"] .employeeDirectoryTopbar span,
 :root[data-theme="dark"] .employeeDirectorySummary small,
+:root[data-theme="dark"] .employeeDetailStats small,
+:root[data-theme="dark"] .employeeFrequencyHeader span,
+:root[data-theme="dark"] .employeeFrequencyDay span,
+:root[data-theme="dark"] .employeeFrequencyDay small,
+:root[data-theme="dark"] .employeeFrequencyEmpty,
 :root[data-theme="dark"] .employeeDirectoryPanelHeader span,
 :root[data-theme="dark"] .employeeDirectoryPerson small,
 :root[data-theme="dark"] .employeeDirectoryCardGrid small {
@@ -2254,9 +2449,52 @@ button.flowActionCard:hover:not(:disabled),
 }
 
 :root[data-theme="dark"] .employeeDirectoryTable th,
+:root[data-theme="dark"] .employeeDirectoryTabs a,
+:root[data-theme="dark"] .employeeDetailStats div,
+:root[data-theme="dark"] .employeeFrequencyLegend span,
+:root[data-theme="dark"] .employeeFrequencyDay,
+:root[data-theme="dark"] .employeeFrequencyEmpty,
 :root[data-theme="dark"] .employeeDirectoryCardGrid span,
 :root[data-theme="dark"] .employeeDirectorySearch input {
   background: var(--color-surface-soft);
+}
+
+:root[data-theme="dark"] .employeeDirectoryTabs a {
+  border-color: var(--color-border-soft);
+  color: var(--color-muted);
+}
+
+:root[data-theme="dark"] .employeeDirectoryTabs a:hover,
+:root[data-theme="dark"] .employeeDirectoryTabs a.isActive,
+:root[data-theme="dark"] .employeeTinyButton:hover:not(:disabled) {
+  background: #22304a;
+  color: #eef6ff;
+  border-color: var(--color-primary);
+}
+
+:root[data-theme="dark"] .employeeDirectoryTable tr.isSelected td {
+  background: #1d2b44;
+}
+
+:root[data-theme="dark"] .employeeDirectoryPerson > span {
+  background: rgba(116, 179, 255, 0.13);
+  color: #cfe6ff;
+}
+
+:root[data-theme="dark"] .employeePresenceBar {
+  background: #263248;
+}
+
+:root[data-theme="dark"] .employeeFrequencyDay.isPresent {
+  background: rgba(52, 211, 153, 0.1);
+}
+
+:root[data-theme="dark"] .employeeFrequencyDay.isAbsent {
+  background: rgba(248, 113, 113, 0.1);
+}
+
+:root[data-theme="dark"] .employeeFrequencyDay.isIncomplete {
+  background: rgba(251, 191, 36, 0.1);
 }
 
 .presenceGrid {
@@ -2320,26 +2558,6 @@ button.flowActionCard:hover:not(:disabled),
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .employeeDirectoryPage {
-    grid-template-columns: 1fr;
-  }
-
-  .employeeDirectorySidebar {
-    padding: 14px;
-    gap: 12px;
-  }
-
-  .employeeDirectoryNav {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding-bottom: 2px;
-  }
-
-  .employeeDirectoryNav a {
-    flex: 0 0 auto;
-  }
-
   .employeeDirectoryTopbar {
     grid-template-columns: 1fr;
   }
@@ -2350,6 +2568,19 @@ button.flowActionCard:hover:not(:disabled),
 
   .employeeDirectorySummary {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .employeeDetailStats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .employeeFrequencyHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .employeeFrequencyLegend {
+    justify-content: flex-start;
   }
 }
 
@@ -2377,20 +2608,29 @@ button.flowActionCard:hover:not(:disabled),
   }
 
   .employeeDirectoryMain {
-    padding: 14px;
+    width: calc(100% - 24px);
+    padding: 12px 0 24px;
   }
 
-  .employeeDirectoryBrand strong {
-    font-size: 13px;
+  .employeeDirectoryTopbar,
+  .employeeDirectoryDetail,
+  .employeeDirectoryPanel {
+    padding: 12px;
+  }
+
+  .employeeDirectoryTopbar h1 {
+    font-size: 24px;
   }
 
   .employeeDirectoryFilters,
-  .employeeDirectorySummary {
+  .employeeDirectorySummary,
+  .employeeDetailStats {
     grid-template-columns: 1fr;
   }
 
-  .employeeDirectoryPanel {
-    padding: 12px;
+  .employeeDetailHeader {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 
   .employeeDirectoryPanelHeader {
@@ -2405,6 +2645,18 @@ button.flowActionCard:hover:not(:disabled),
   .employeeDirectoryCards {
     display: grid;
     gap: 10px;
+  }
+
+  .employeeFrequencyGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .employeeFrequencyDay {
+    min-height: auto;
+  }
+
+  .employeeTinyButton {
+    width: 100%;
   }
 
   .employeePresenceBar {
