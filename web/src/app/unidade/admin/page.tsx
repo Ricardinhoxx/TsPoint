@@ -31,6 +31,17 @@ type Pagination = {
   total: number;
   total_pages: number;
 };
+type FuncionarioPontoAccess = {
+  id: number;
+  funcionario_id: number;
+  funcionario_nome: string;
+  unidade_nome: string;
+  token_hint: string;
+  ativo: boolean;
+  expires_at: string | null;
+  last_used_at: string | null;
+  created_at: string;
+};
 
 const DEFAULT_HORA_ENTRADA = "08:00";
 const DEFAULT_HORA_SAIDA = "17:00";
@@ -63,6 +74,11 @@ export default function AdminAssignmentsPage() {
   const [creatingTabletAccess, setCreatingTabletAccess] = useState(false);
   const [revokingTabletAccessId, setRevokingTabletAccessId] = useState<number | null>(null);
   const [deletingFuncionarioId, setDeletingFuncionarioId] = useState<number | null>(null);
+  const [pontoAccess, setPontoAccess] = useState<FuncionarioPontoAccess[]>([]);
+  const [pontoAccessFuncionarioId, setPontoAccessFuncionarioId] = useState<number | null>(null);
+  const [pontoAccessExpiresAt, setPontoAccessExpiresAt] = useState("");
+  const [creatingPontoAccess, setCreatingPontoAccess] = useState(false);
+  const [revokingPontoAccessId, setRevokingPontoAccessId] = useState<number | null>(null);
 
   const unidadeMap = useMemo(() => {
     return new Map(unidades.map((u) => [u.id, u.nome]));
@@ -110,6 +126,12 @@ export default function AdminAssignmentsPage() {
       const tData = await tRes.json().catch(() => null);
       if (tRes.ok) {
         setTabletAccess(Array.isArray(tData?.tablet_access) ? (tData.tablet_access as TabletAccess[]) : []);
+      }
+
+      const paRes = await fetch("/api/admin/funcionario-ponto-access");
+      const paData = await paRes.json().catch(() => null);
+      if (paRes.ok) {
+        setPontoAccess(Array.isArray(paData?.accesses) ? (paData.accesses as FuncionarioPontoAccess[]) : []);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao carregar");
@@ -375,6 +397,83 @@ export default function AdminAssignmentsPage() {
     }
   }
 
+  async function createPontoAccess() {
+    if (!pontoAccessFuncionarioId) {
+      setError("Selecione um colaborador para gerar o link de ponto.");
+      return;
+    }
+
+    setCreatingPontoAccess(true);
+    setError(null);
+    setStatusMsg(null);
+    try {
+      const res = await fetch("/api/admin/funcionario-ponto-access", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          funcionario_id: pontoAccessFuncionarioId,
+          expires_at: pontoAccessExpiresAt.trim() || null
+        })
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
+
+      if (data?.link && typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(String(data.link));
+      }
+
+      setStatusMsg(
+        `Link individual criado${data?.link ? " e copiado para a area de transferencia" : ""}: ${data?.link ?? ""}`
+      );
+      setPontoAccessExpiresAt("");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Falha ao criar link individual");
+    } finally {
+      setCreatingPontoAccess(false);
+    }
+  }
+
+  async function revokePontoAccess(id: number) {
+    const confirm = window.confirm("Deseja desativar este link individual?");
+    if (!confirm) return;
+
+    setRevokingPontoAccessId(id);
+    setError(null);
+    setStatusMsg(null);
+    try {
+      const res = await fetch(`/api/admin/funcionario-ponto-access?id=${id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
+      setStatusMsg("Link individual desativado com sucesso.");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Falha ao desativar link individual");
+    } finally {
+      setRevokingPontoAccessId(null);
+    }
+  }
+
+  async function deletePontoAccess(id: number) {
+    const confirm = window.confirm("Deseja apagar este link individual definitivamente?");
+    if (!confirm) return;
+
+    setRevokingPontoAccessId(id);
+    setError(null);
+    setStatusMsg(null);
+    try {
+      const res = await fetch(`/api/admin/funcionario-ponto-access?id=${id}&hard=1`, { method: "DELETE" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
+      setStatusMsg("Link individual apagado com sucesso.");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Falha ao apagar link individual");
+    } finally {
+      setRevokingPontoAccessId(null);
+    }
+  }
+
   async function revokeTabletAccess(id: number) {
     const confirm = window.confirm("Deseja desativar este link de tablet?");
     if (!confirm) return;
@@ -532,6 +631,90 @@ export default function AdminAssignmentsPage() {
                           disabled={revokingTabletAccessId === ta.id}
                         >
                           {revokingTabletAccessId === ta.id ? "Apagando..." : "Apagar"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="spacer" />
+
+      <div className="card">
+        <h2 style={{ marginTop: 0 }}>Links individuais de ponto</h2>
+        <div className="row" style={{ alignItems: "flex-end", flexWrap: "wrap" }}>
+          <div style={{ minWidth: 280, flex: 1 }}>
+            <label>Colaborador</label>
+            <select
+              value={pontoAccessFuncionarioId ? String(pontoAccessFuncionarioId) : ""}
+              onChange={(e) => setPontoAccessFuncionarioId(e.target.value ? Number(e.target.value) : null)}
+            >
+              <option value="">Selecione...</option>
+              {funcionarios.map((f) => (
+                <option key={f.id} value={String(f.id)}>
+                  {f.nome} - {unidadeMap.get(f.unidade_id) ?? `id=${f.unidade_id}`}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div style={{ minWidth: 220, flex: 1 }}>
+            <label>Expira em (opcional)</label>
+            <input
+              type="datetime-local"
+              value={pontoAccessExpiresAt}
+              onChange={(e) => setPontoAccessExpiresAt(e.target.value)}
+            />
+          </div>
+          <button onClick={createPontoAccess} disabled={creatingPontoAccess}>
+            {creatingPontoAccess ? "Gerando..." : "Gerar link individual"}
+          </button>
+        </div>
+
+        <div className="spacer" />
+        <div className="tableShell">
+          <table>
+            <thead>
+              <tr>
+                <th>Colaborador</th>
+                <th>Unidade</th>
+                <th>Token</th>
+                <th>Status</th>
+                <th>Último acesso</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pontoAccess.length === 0 ? (
+                <tr>
+                  <td colSpan={6}>Nenhum link individual criado.</td>
+                </tr>
+              ) : (
+                pontoAccess.map((pa) => (
+                  <tr key={pa.id}>
+                    <td>{pa.funcionario_nome}</td>
+                    <td>{pa.unidade_nome}</td>
+                    <td>{pa.token_hint}</td>
+                    <td>{pa.ativo ? "ATIVO" : "INATIVO"}</td>
+                    <td>{pa.last_used_at ? new Date(pa.last_used_at).toLocaleString() : "Nunca acessado"}</td>
+                    <td>
+                      <div className="row" style={{ gap: 8 }}>
+                        <button
+                          className="secondary"
+                          onClick={() => revokePontoAccess(pa.id)}
+                          disabled={!pa.ativo || revokingPontoAccessId === pa.id}
+                        >
+                          {revokingPontoAccessId === pa.id ? "Desativando..." : "Desativar"}
+                        </button>
+                        <button
+                          className="secondary"
+                          onClick={() => deletePontoAccess(pa.id)}
+                          disabled={revokingPontoAccessId === pa.id}
+                        >
+                          {revokingPontoAccessId === pa.id ? "Apagando..." : "Apagar"}
                         </button>
                       </div>
                     </td>
