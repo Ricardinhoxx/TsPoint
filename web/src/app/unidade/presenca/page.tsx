@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 
 type DayStatus = "PRESENT" | "PENDING" | "ABSENT";
 type Period = "WEEK" | "MONTH" | "YEAR";
+type Role = "ADMIN" | "SUPERVISOR";
+type LocalTipo = "LOJA" | "ESCRITORIO" | "CD";
 
 type Unidade = {
   id: number;
@@ -42,6 +44,28 @@ type DayPersonItem = {
   hora_extra_minutos?: number;
 };
 
+type Funcionario = {
+  id: number;
+  nome: string;
+  turno: number;
+  local_tipo: LocalTipo;
+  unidade_id: number;
+  unidade_nome?: string;
+  status: string;
+  face_embeddings?: number;
+  hora_entrada_prevista?: string | null;
+  hora_saida_prevista?: string | null;
+};
+
+type PontoItem = {
+  id: number;
+  funcionario_id: number;
+  tipo: "ENTRADA" | "SAIDA";
+  timestamp: string;
+  score: number | null;
+  unidade_id: number;
+};
+
 type PresenceApiResponse = {
   ok: boolean;
   scope: "ALL" | "ONE";
@@ -55,6 +79,7 @@ type PresenceApiResponse = {
 type UnidadesApiResponse = {
   unidade?: Unidade | null;
   unidades?: Unidade[];
+  role?: Role;
 };
 
 type RightPanelMode = "DAY" | "RANKING";
@@ -109,6 +134,18 @@ function squareClass(status: DayStatus) {
   return "presenceSquareRed";
 }
 
+function toMonthOnly(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  return `${y}-${m}`;
+}
+
+function toLocalDateTimeInput(rawIso: string): string {
+  const d = new Date(rawIso);
+  const offsetMs = d.getTimezoneOffset() * 60_000;
+  return new Date(d.getTime() - offsetMs).toISOString().slice(0, 16);
+}
+
 function statusPillClass(status: DayStatus) {
   if (status === "PRESENT") return "presencePersonStatusOk";
   if (status === "PENDING") return "presencePersonStatusPending";
@@ -125,6 +162,7 @@ function fmtMinutes(totalMinutes: number) {
 
 export default function PresencaPage() {
   const [unidades, setUnidades] = useState<Unidade[]>([]);
+  const [role, setRole] = useState<Role>("SUPERVISOR");
   const [unidadeId, setUnidadeId] = useState<number | "ALL">("ALL");
   const [period, setPeriod] = useState<Period>("WEEK");
   const [refDate, setRefDate] = useState(() => toDateOnly(new Date()));
@@ -137,6 +175,18 @@ export default function PresencaPage() {
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [dayPeople, setDayPeople] = useState<DayPersonItem[]>([]);
   const [rightPanelMode, setRightPanelMode] = useState<RightPanelMode>("DAY");
+  const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
+  const [ajusteFuncionarioId, setAjusteFuncionarioId] = useState<number | null>(null);
+  const [ajusteMes, setAjusteMes] = useState<string>(() => toMonthOnly(new Date()));
+  const [ajusteNomeBusca, setAjusteNomeBusca] = useState("");
+  const [ajustePontos, setAjustePontos] = useState<PontoItem[]>([]);
+  const [ajusteLoading, setAjusteLoading] = useState(false);
+  const [ajusteError, setAjusteError] = useState<string | null>(null);
+  const [ajusteResult, setAjusteResult] = useState<string | null>(null);
+  const [editingPontoId, setEditingPontoId] = useState<number | null>(null);
+  const [editTipo, setEditTipo] = useState<"ENTRADA" | "SAIDA">("ENTRADA");
+  const [editTimestamp, setEditTimestamp] = useState("");
+  const [editMotivo, setEditMotivo] = useState("");
 
   useEffect(() => {
     async function loadUnidades() {
@@ -155,6 +205,7 @@ export default function PresencaPage() {
           ? [data.unidade]
           : [];
 
+      setRole(data.role === "ADMIN" ? "ADMIN" : "SUPERVISOR");
       setUnidades(list);
       if (list.length === 1) setUnidadeId(list[0].id);
     }
@@ -198,6 +249,38 @@ export default function PresencaPage() {
     loadPresenca().catch(() => null);
   }, [unidadeId, period, refDate, selectedDay, rightPanelMode, unidadesLoaded]);
 
+  useEffect(() => {
+    async function loadFuncionarios() {
+      if (!unidadesLoaded) return;
+      const query =
+        role === "ADMIN"
+          ? unidadeId !== "ALL"
+            ? `?unidade_id=${unidadeId}`
+            : ""
+          : unidadeId !== "ALL"
+            ? `?unidade_id=${unidadeId}`
+            : "";
+
+      const res = await fetch(`/api/funcionarios${query}`);
+      if (res.status === 401) {
+        window.location.href = "/login";
+        return;
+      }
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setAjusteError(data?.error ?? `Erro ao carregar colaboradores (HTTP ${res.status})`);
+        setFuncionarios([]);
+        return;
+      }
+      setFuncionarios(Array.isArray(data?.funcionarios) ? data.funcionarios : []);
+    }
+
+    loadFuncionarios().catch((e) => {
+      setAjusteError(e instanceof Error ? e.message : "Erro ao carregar colaboradores.");
+      setFuncionarios([]);
+    });
+  }, [role, unidadeId, unidadesLoaded]);
+
   const weekRows = useMemo(() => {
     return days
       .filter((d): d is PresencaDayAll | PresencaDay => "status_day" in d)
@@ -208,6 +291,22 @@ export default function PresencaPage() {
     if (statusFilter === "ALL") return dayPeople;
     return dayPeople.filter((p) => p.status_day === statusFilter);
   }, [dayPeople, statusFilter]);
+
+  const funcionariosFiltradosAjuste = useMemo(() => {
+    const term = ajusteNomeBusca.trim().toLowerCase();
+    if (!term) return funcionarios;
+    return funcionarios.filter((f) => f.nome.toLowerCase().includes(term));
+  }, [funcionarios, ajusteNomeBusca]);
+
+  useEffect(() => {
+    if (!funcionarios.length) {
+      setAjusteFuncionarioId(null);
+      return;
+    }
+    if (!ajusteFuncionarioId || !funcionarios.some((f) => f.id === ajusteFuncionarioId)) {
+      setAjusteFuncionarioId(funcionarios[0].id);
+    }
+  }, [funcionarios, ajusteFuncionarioId]);
 
   const currentUnidadeName = useMemo(() => {
     if (unidadeId === "ALL") return "Todas as unidades";
@@ -233,6 +332,84 @@ export default function PresencaPage() {
   useEffect(() => {
     setSelectedDay(null);
   }, [period, refDate, unidadeId]);
+
+  async function carregarPontosAjuste() {
+    if (!ajusteFuncionarioId) return;
+    setAjusteLoading(true);
+    setAjusteError(null);
+    setAjusteResult(null);
+    setEditingPontoId(null);
+    try {
+      const res = await fetch(
+        `/api/ponto?funcionario_id=${ajusteFuncionarioId}&month=${encodeURIComponent(ajusteMes)}`
+      );
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
+      setAjustePontos(Array.isArray(data?.pontos) ? data.pontos : []);
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : "Falha ao carregar pontos";
+      setAjusteError(raw);
+      setAjustePontos([]);
+    } finally {
+      setAjusteLoading(false);
+    }
+  }
+
+  function onChangeBuscaColaborador(raw: string) {
+    setAjusteNomeBusca(raw);
+    const term = raw.trim().toLowerCase();
+    if (!term) return;
+    const exact = funcionarios.find((f) => f.nome.trim().toLowerCase() === term);
+    if (exact) setAjusteFuncionarioId(exact.id);
+  }
+
+  function iniciarEdicaoPonto(p: PontoItem) {
+    setEditingPontoId(p.id);
+    setEditTipo(p.tipo);
+    setEditTimestamp(toLocalDateTimeInput(p.timestamp));
+    setEditMotivo("");
+  }
+
+  async function salvarEdicaoPonto() {
+    if (!editingPontoId) return;
+    const timestampIso = editTimestamp ? new Date(editTimestamp).toISOString() : null;
+    const res = await fetch(`/api/ponto/${editingPontoId}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        tipo: editTipo,
+        timestamp: timestampIso,
+        motivo: editMotivo.trim() || null
+      })
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      setAjusteError(data?.error ?? `HTTP ${res.status}`);
+      return;
+    }
+    setAjusteResult("Ponto atualizado com sucesso.");
+    setEditingPontoId(null);
+    await carregarPontosAjuste();
+  }
+
+  async function excluirPonto(pontoId: number) {
+    const ok = window.confirm("Deseja excluir este registro de ponto?");
+    if (!ok) return;
+    const motivo = window.prompt("Motivo da exclusão (opcional):") ?? "";
+    const res = await fetch(`/api/ponto/${pontoId}`, {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ motivo })
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      setAjusteError(data?.error ?? `HTTP ${res.status}`);
+      return;
+    }
+    setAjusteResult("Ponto excluído com sucesso.");
+    if (editingPontoId === pontoId) setEditingPontoId(null);
+    await carregarPontosAjuste();
+  }
 
   if (!unidadesLoaded || !initialPointsLoaded) {
     return (
@@ -460,6 +637,149 @@ export default function PresencaPage() {
           ) : null}
         </aside>
       </div>
+
+      <section className="opsPanel presenceManualPanel">
+        <div className="opsPanelHeader">
+          <div>
+            <h2>Ajuste manual de ponto</h2>
+            <p>Correções auditáveis ficam concentradas na tela de pontos.</p>
+          </div>
+        </div>
+
+        <div className="opsFormGrid">
+          <div>
+            <label>Buscar colaborador</label>
+            <input
+              list="presenca-ajuste-colaboradores"
+              value={ajusteNomeBusca}
+              onChange={(e) => onChangeBuscaColaborador(e.target.value)}
+              placeholder="Digite o nome..."
+            />
+            <datalist id="presenca-ajuste-colaboradores">
+              {funcionarios.map((f) => (
+                <option key={`nome-${f.id}`} value={f.nome} />
+              ))}
+            </datalist>
+          </div>
+          <div>
+            <label>Colaborador</label>
+            <select
+              value={ajusteFuncionarioId ? String(ajusteFuncionarioId) : ""}
+              onChange={(e) => setAjusteFuncionarioId(e.target.value ? Number(e.target.value) : null)}
+            >
+              <option value="">Selecione...</option>
+              {funcionariosFiltradosAjuste.map((f) => (
+                <option key={f.id} value={String(f.id)}>
+                  {f.nome}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label>Mês</label>
+            <input type="month" value={ajusteMes} onChange={(e) => setAjusteMes(e.target.value)} />
+          </div>
+          <button onClick={carregarPontosAjuste} disabled={!ajusteFuncionarioId || ajusteLoading}>
+            {ajusteLoading ? "Carregando..." : "Carregar pontos"}
+          </button>
+        </div>
+
+        {ajusteError ? (
+          <>
+            <div className="spacer" />
+            <div className="card" style={{ borderColor: "#8a1f1f" }}>
+              Erro: {ajusteError}
+            </div>
+          </>
+        ) : null}
+        {ajusteResult ? (
+          <>
+            <div className="spacer" />
+            <div className="card" style={{ borderColor: "#16a34a" }}>
+              {ajusteResult}
+            </div>
+          </>
+        ) : null}
+
+        <div className="spacer" />
+        <div className="tableShell">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Tipo</th>
+                <th>Data/hora</th>
+                <th>Score</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ajustePontos.length === 0 ? (
+                <tr>
+                  <td colSpan={5}>Sem pontos para os filtros selecionados.</td>
+                </tr>
+              ) : (
+                ajustePontos.map((p) => (
+                  <tr key={p.id}>
+                    <td>{p.id}</td>
+                    <td>
+                      {editingPontoId === p.id ? (
+                        <select
+                          value={editTipo}
+                          onChange={(e) => setEditTipo(e.target.value as "ENTRADA" | "SAIDA")}
+                        >
+                          <option value="ENTRADA">ENTRADA</option>
+                          <option value="SAIDA">SAIDA</option>
+                        </select>
+                      ) : (
+                        p.tipo
+                      )}
+                    </td>
+                    <td>
+                      {editingPontoId === p.id ? (
+                        <input
+                          type="datetime-local"
+                          value={editTimestamp}
+                          onChange={(e) => setEditTimestamp(e.target.value)}
+                        />
+                      ) : (
+                        new Date(p.timestamp).toLocaleString()
+                      )}
+                    </td>
+                    <td>{p.score ?? "-"}</td>
+                    <td>
+                      <div className="row" style={{ gap: 8 }}>
+                        {editingPontoId === p.id ? (
+                          <>
+                            <input
+                              placeholder="Motivo (opcional)"
+                              value={editMotivo}
+                              onChange={(e) => setEditMotivo(e.target.value)}
+                            />
+                            <button onClick={salvarEdicaoPonto}>Salvar</button>
+                            <button className="secondary" onClick={() => setEditingPontoId(null)}>
+                              Cancelar
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button className="secondary" onClick={() => iniciarEdicaoPonto(p)}>
+                              Editar
+                            </button>
+                            <button className="secondary" onClick={() => excluirPonto(p.id)}>
+                              Excluir
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   );
 }

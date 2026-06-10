@@ -973,6 +973,57 @@ video {
   margin-top: 22px;
 }
 
+.opsMobileFlow {
+  display: none;
+}
+
+.flowActionCard {
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-0);
+  background: var(--color-surface);
+  padding: 14px;
+  text-decoration: none;
+  color: var(--color-text);
+}
+
+.flowActionCard strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--color-text);
+  font-size: 20px;
+  line-height: 1.15;
+}
+
+.flowActionCard span {
+  display: block;
+  margin-top: 6px;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.flowActionCard button,
+button.flowActionCard {
+  width: 100%;
+  min-height: auto;
+  text-align: left;
+  box-shadow: none;
+}
+
+button.flowActionCard {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-border-soft);
+  font: inherit;
+}
+
+button.flowActionCard:hover:not(:disabled),
+.flowActionCard:hover {
+  background: var(--color-surface-soft);
+  border-color: var(--color-border);
+  transform: none;
+}
+
 .opsMetricCard {
   border: 1px solid var(--color-border-soft);
   border-radius: var(--radius-0);
@@ -1508,6 +1559,17 @@ video {
     grid-template-columns: 1fr;
   }
 
+  .opsPage .opsQuickGrid,
+  .opsPage .opsPanelGrid {
+    display: none;
+  }
+
+  .opsMobileFlow {
+    display: grid;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
   .opsPanel {
     padding: 14px;
   }
@@ -1883,6 +1945,320 @@ video {
   color: var(--color-text);
 }
 
+.employeeDirectoryPage {
+  min-height: 100vh;
+  background: #f3f4f8;
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+}
+
+.employeeDirectorySidebar {
+  background: #6f58c9;
+  color: #ffffff;
+  padding: 22px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+.employeeDirectoryBrand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.employeeDirectoryBrand span {
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: var(--radius-0);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+}
+
+.employeeDirectoryBrand strong {
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.employeeDirectoryNav {
+  display: grid;
+  gap: 6px;
+}
+
+.employeeDirectoryNav a {
+  color: rgba(255, 255, 255, 0.84);
+  text-decoration: none;
+  padding: 10px 12px;
+  border-radius: var(--radius-0);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.employeeDirectoryNav a:hover,
+.employeeDirectoryNav a.isActive {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+.employeeDirectoryMain {
+  min-width: 0;
+  padding: 22px;
+}
+
+.employeeDirectoryTopbar {
+  min-height: 76px;
+  background: #ffffff;
+  border: 1px solid #e6ebf2;
+  border-radius: var(--radius-0);
+  display: grid;
+  grid-template-columns: auto minmax(260px, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 16px;
+}
+
+.employeeDirectoryTopbar h1 {
+  margin: 0;
+  color: #172033;
+  font-size: 26px;
+  line-height: 1.1;
+}
+
+.employeeDirectorySearch input {
+  background: #f8fafc;
+}
+
+.employeeDirectoryFilters {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: 180px 220px 180px auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.employeeDirectorySummary {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.employeeDirectorySummary div {
+  background: #ffffff;
+  border: 1px solid #e6ebf2;
+  border-radius: var(--radius-0);
+  padding: 12px;
+}
+
+.employeeDirectorySummary small {
+  display: block;
+  color: #667085;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.employeeDirectorySummary strong {
+  display: block;
+  margin-top: 4px;
+  color: #172033;
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.employeeDirectoryPanel {
+  margin-top: 14px;
+  background: #ffffff;
+  border: 1px solid #e6ebf2;
+  border-radius: var(--radius-0);
+  padding: 14px;
+}
+
+.employeeDirectoryPanelHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.employeeDirectoryPanelHeader h2 {
+  margin: 0;
+  color: #172033;
+  font-size: 22px;
+}
+
+.employeeDirectoryPanelHeader span {
+  color: #667085;
+  font-size: 13px;
+}
+
+.employeeDirectoryTableShell {
+  overflow-x: auto;
+  border: 1px solid #e6ebf2;
+  border-radius: var(--radius-0);
+}
+
+.employeeDirectoryTable {
+  min-width: 980px;
+}
+
+.employeeDirectoryTable th {
+  background: #f6f7fb;
+  color: #667085;
+}
+
+.employeeDirectoryTable td {
+  color: #344054;
+  font-size: 13px;
+}
+
+.employeeDirectoryPerson {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.employeeDirectoryPerson > span {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: var(--radius-0);
+  background: #efeafe;
+  color: #5b43b5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 12px;
+}
+
+.employeeDirectoryPerson strong {
+  display: block;
+  color: #172033;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.employeeDirectoryPerson small {
+  display: block;
+  color: #667085;
+  margin-top: 2px;
+}
+
+.employeePresenceBar {
+  width: 86px;
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #edf0f5;
+}
+
+.employeePresenceBar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #6f58c9;
+}
+
+.employeeTinyButton {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: #6f58c9;
+  color: #ffffff;
+  padding: 5px 10px;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.employeeDirectoryCards {
+  display: none;
+}
+
+.employeeDirectoryCard {
+  border: 1px solid #e6ebf2;
+  border-radius: var(--radius-0);
+  background: #ffffff;
+  padding: 12px;
+}
+
+.employeeDirectoryCardTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.employeeDirectoryCardGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.employeeDirectoryCardGrid span {
+  border: 1px solid #e6ebf2;
+  border-radius: var(--radius-0);
+  background: #f8fafc;
+  padding: 8px;
+}
+
+.employeeDirectoryCardGrid small {
+  display: block;
+  color: #667085;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.employeeDirectoryCardGrid b {
+  display: block;
+  margin-top: 2px;
+  color: #172033;
+}
+
+:root[data-theme="dark"] .employeeDirectoryPage {
+  background: var(--color-bg);
+}
+
+:root[data-theme="dark"] .employeeDirectoryTopbar,
+:root[data-theme="dark"] .employeeDirectorySummary div,
+:root[data-theme="dark"] .employeeDirectoryPanel,
+:root[data-theme="dark"] .employeeDirectoryCard {
+  background: var(--color-surface);
+  border-color: var(--color-border-soft);
+}
+
+:root[data-theme="dark"] .employeeDirectoryTopbar h1,
+:root[data-theme="dark"] .employeeDirectorySummary strong,
+:root[data-theme="dark"] .employeeDirectoryPanelHeader h2,
+:root[data-theme="dark"] .employeeDirectoryPerson strong,
+:root[data-theme="dark"] .employeeDirectoryCardGrid b {
+  color: var(--color-text);
+}
+
+:root[data-theme="dark"] .employeeDirectoryTable td,
+:root[data-theme="dark"] .employeeDirectorySummary small,
+:root[data-theme="dark"] .employeeDirectoryPanelHeader span,
+:root[data-theme="dark"] .employeeDirectoryPerson small,
+:root[data-theme="dark"] .employeeDirectoryCardGrid small {
+  color: var(--color-muted);
+}
+
+:root[data-theme="dark"] .employeeDirectoryTable th,
+:root[data-theme="dark"] .employeeDirectoryCardGrid span,
+:root[data-theme="dark"] .employeeDirectorySearch input {
+  background: var(--color-surface-soft);
+}
+
 .presenceGrid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -1943,6 +2319,38 @@ video {
   .employeePointSummary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .employeeDirectoryPage {
+    grid-template-columns: 1fr;
+  }
+
+  .employeeDirectorySidebar {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .employeeDirectoryNav {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .employeeDirectoryNav a {
+    flex: 0 0 auto;
+  }
+
+  .employeeDirectoryTopbar {
+    grid-template-columns: 1fr;
+  }
+
+  .employeeDirectoryFilters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .employeeDirectorySummary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 720px) {
@@ -1966,6 +2374,42 @@ video {
   .employeePointCards {
     display: grid;
     gap: 10px;
+  }
+
+  .employeeDirectoryMain {
+    padding: 14px;
+  }
+
+  .employeeDirectoryBrand strong {
+    font-size: 13px;
+  }
+
+  .employeeDirectoryFilters,
+  .employeeDirectorySummary {
+    grid-template-columns: 1fr;
+  }
+
+  .employeeDirectoryPanel {
+    padding: 12px;
+  }
+
+  .employeeDirectoryPanelHeader {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .employeeDirectoryTableShell {
+    display: none;
+  }
+
+  .employeeDirectoryCards {
+    display: grid;
+    gap: 10px;
+  }
+
+  .employeePresenceBar {
+    width: 100%;
+    margin-top: 10px;
   }
 }
 
@@ -2613,6 +3057,10 @@ video {
 .presencePageShell {
   padding-top: 28px;
   padding-bottom: 30px;
+}
+
+.presenceManualPanel {
+  margin-top: 16px;
 }
 
 .presenceLoadingScreen {

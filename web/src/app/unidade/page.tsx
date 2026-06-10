@@ -20,15 +20,6 @@ type Funcionario = {
   hora_saida_prevista?: string | null;
 };
 
-type PontoItem = {
-  id: number;
-  funcionario_id: number;
-  tipo: "ENTRADA" | "SAIDA";
-  timestamp: string;
-  score: number | null;
-  unidade_id: number;
-};
-
 type DiaristaTipo = "SUBSTITUICAO" | "DEMANDA";
 
 type Unidade = { id: number; nome: string };
@@ -63,17 +54,6 @@ export default function MinhaUnidadePage() {
   const [diaristaObservacao, setDiaristaObservacao] = useState("");
   const [diaristaResult, setDiaristaResult] = useState<string | null>(null);
   const [savingDiarista, setSavingDiarista] = useState(false);
-  const [ajusteFuncionarioId, setAjusteFuncionarioId] = useState<number | null>(null);
-  const [ajusteMes, setAjusteMes] = useState<string>(() => toMonthOnly(new Date()));
-  const [ajusteNomeBusca, setAjusteNomeBusca] = useState("");
-  const [ajustePontos, setAjustePontos] = useState<PontoItem[]>([]);
-  const [ajusteLoading, setAjusteLoading] = useState(false);
-  const [ajusteError, setAjusteError] = useState<string | null>(null);
-  const [ajusteResult, setAjusteResult] = useState<string | null>(null);
-  const [editingPontoId, setEditingPontoId] = useState<number | null>(null);
-  const [editTipo, setEditTipo] = useState<"ENTRADA" | "SAIDA">("ENTRADA");
-  const [editTimestamp, setEditTimestamp] = useState("");
-  const [editMotivo, setEditMotivo] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const roleLabel = role === "ADMIN" ? "Administrador" : "Supervisor";
@@ -83,12 +63,6 @@ export default function MinhaUnidadePage() {
     if (!match?.matched || !match.funcionario_id) return null;
     return funcionarios.find((f) => f.id === match.funcionario_id) ?? null;
   }, [funcionarios, match]);
-
-  const funcionariosFiltradosAjuste = useMemo(() => {
-    const term = ajusteNomeBusca.trim().toLowerCase();
-    if (!term) return funcionarios;
-    return funcionarios.filter((f) => f.nome.toLowerCase().includes(term));
-  }, [funcionarios, ajusteNomeBusca]);
 
   function recognizeErrorMessage(raw: unknown): string {
     const code = String(raw ?? "").trim().toUpperCase();
@@ -104,18 +78,6 @@ export default function MinhaUnidadePage() {
       default:
         return code || "Erro ao reconhecer rosto.";
     }
-  }
-
-  function toMonthOnly(d: Date): string {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    return `${y}-${m}`;
-  }
-
-  function toLocalDateTimeInput(rawIso: string): string {
-    const d = new Date(rawIso);
-    const offsetMs = d.getTimezoneOffset() * 60_000;
-    return new Date(d.getTime() - offsetMs).toISOString().slice(0, 16);
   }
 
   async function loadContext() {
@@ -221,16 +183,6 @@ export default function MinhaUnidadePage() {
     await loadFuncionarios().catch(() => null);
   }
 
-  useEffect(() => {
-    if (!funcionarios.length) {
-      setAjusteFuncionarioId(null);
-      return;
-    }
-    if (!ajusteFuncionarioId || !funcionarios.some((f) => f.id === ajusteFuncionarioId)) {
-      setAjusteFuncionarioId(funcionarios[0].id);
-    }
-  }, [funcionarios, ajusteFuncionarioId]);
-
   async function registrarDiarista() {
     const nome = diaristaNome.trim();
     if (nome.length < 2) {
@@ -268,84 +220,6 @@ export default function MinhaUnidadePage() {
     } finally {
       setSavingDiarista(false);
     }
-  }
-
-  async function carregarPontosAjuste() {
-    if (!ajusteFuncionarioId) return;
-    setAjusteLoading(true);
-    setAjusteError(null);
-    setAjusteResult(null);
-    setEditingPontoId(null);
-    try {
-      const res = await fetch(
-        `/api/ponto?funcionario_id=${ajusteFuncionarioId}&month=${encodeURIComponent(ajusteMes)}`
-      );
-      const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
-      setAjustePontos(Array.isArray(data?.pontos) ? data.pontos : []);
-    } catch (err) {
-      const raw = err instanceof Error ? err.message : "Falha ao carregar pontos";
-      setAjusteError(raw);
-      setAjustePontos([]);
-    } finally {
-      setAjusteLoading(false);
-    }
-  }
-
-  function onChangeBuscaColaborador(raw: string) {
-    setAjusteNomeBusca(raw);
-    const term = raw.trim().toLowerCase();
-    if (!term) return;
-    const exact = funcionarios.find((f) => f.nome.trim().toLowerCase() === term);
-    if (exact) setAjusteFuncionarioId(exact.id);
-  }
-
-  function iniciarEdicaoPonto(p: PontoItem) {
-    setEditingPontoId(p.id);
-    setEditTipo(p.tipo);
-    setEditTimestamp(toLocalDateTimeInput(p.timestamp));
-    setEditMotivo("");
-  }
-
-  async function salvarEdicaoPonto() {
-    if (!editingPontoId) return;
-    const timestampIso = editTimestamp ? new Date(editTimestamp).toISOString() : null;
-    const res = await fetch(`/api/ponto/${editingPontoId}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        tipo: editTipo,
-        timestamp: timestampIso,
-        motivo: editMotivo.trim() || null
-      })
-    });
-    const data = await res.json().catch(() => null);
-    if (!res.ok) {
-      setAjusteError(data?.error ?? `HTTP ${res.status}`);
-      return;
-    }
-    setAjusteResult("Ponto atualizado com sucesso.");
-    setEditingPontoId(null);
-    await carregarPontosAjuste();
-  }
-
-  async function excluirPonto(pontoId: number) {
-    const ok = window.confirm("Deseja excluir este registro de ponto?");
-    if (!ok) return;
-    const motivo = window.prompt("Motivo da exclusão (opcional):") ?? "";
-    const res = await fetch(`/api/ponto/${pontoId}`, {
-      method: "DELETE",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ motivo })
-    });
-    const data = await res.json().catch(() => null);
-    if (!res.ok) {
-      setAjusteError(data?.error ?? `HTTP ${res.status}`);
-      return;
-    }
-    setAjusteResult("Ponto excluído com sucesso.");
-    if (editingPontoId === pontoId) setEditingPontoId(null);
-    await carregarPontosAjuste();
   }
 
   function deleteErrorMessage(raw: unknown): string {
@@ -477,6 +351,9 @@ export default function MinhaUnidadePage() {
               <Link className="btnLink secondary" href="/unidade/cadastrar">
                 Cadastrar colaborador
               </Link>
+              <Link className="btnLink secondary" href="/unidade/funcionarios">
+                Funcionários
+              </Link>
               <Link className="btnLink secondary" href="/unidade/presenca">
                 Ver pontos
               </Link>
@@ -521,6 +398,14 @@ export default function MinhaUnidadePage() {
                   </Link>
                   <Link
                     className="mobileNavItem"
+                    href="/unidade/funcionarios"
+                    role="menuitem"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Funcionários
+                  </Link>
+                  <Link
+                    className="mobileNavItem"
                     href="/unidade/presenca"
                     role="menuitem"
                     onClick={() => setMobileMenuOpen(false)}
@@ -540,6 +425,29 @@ export default function MinhaUnidadePage() {
                 </div>
               ) : null}
             </div>
+          </div>
+
+          <div className="opsMobileFlow" aria-label="Fluxo de operação">
+            <button type="button" className="flowActionCard" onClick={openCameraModal}>
+              <span className="statusBadge statusBadgeInfo">Passo 1</span>
+              <strong>Registrar ponto</strong>
+              <span>Abra a câmera, identifique o colaborador e confirme a presença.</span>
+            </button>
+            <Link className="flowActionCard" href="/unidade/cadastrar">
+              <span className="statusBadge statusBadgeNeutral">Passo 2</span>
+              <strong>Cadastrar colaborador</strong>
+              <span>Adicione dados, jornada e base facial em um fluxo guiado.</span>
+            </Link>
+            <Link className="flowActionCard" href="/unidade/funcionarios">
+              <span className="statusBadge statusBadgeNeutral">Relatório</span>
+              <strong>Funcionários</strong>
+              <span>Veja horas feitas, extras, faltas e percentual individual.</span>
+            </Link>
+            <Link className="flowActionCard" href="/unidade/presenca">
+              <span className="statusBadge statusBadgeNeutral">Passo 3</span>
+              <strong>Ver e ajustar pontos</strong>
+              <span>Acompanhe presença e corrija registros diretamente na tela de pontos.</span>
+            </Link>
           </div>
 
           <div className="opsQuickGrid">
@@ -703,150 +611,6 @@ export default function MinhaUnidadePage() {
           ) : null}
           </section>
         </div>
-
-        <div className="spacer" />
-
-        <section className="opsPanel">
-          <div className="opsPanelHeader">
-            <div>
-              <h2>Ajuste manual de ponto</h2>
-              <p>Manutenção administrativa para correções auditáveis de registro.</p>
-            </div>
-          </div>
-          <div className="opsFormGrid">
-            <div>
-              <label>Buscar colaborador</label>
-              <input
-                list="ajuste-colaboradores"
-                value={ajusteNomeBusca}
-                onChange={(e) => onChangeBuscaColaborador(e.target.value)}
-                placeholder="Digite o nome..."
-              />
-              <datalist id="ajuste-colaboradores">
-                {funcionarios.map((f) => (
-                  <option key={`nome-${f.id}`} value={f.nome} />
-                ))}
-              </datalist>
-            </div>
-            <div>
-              <label>Colaborador (lista)</label>
-              <select
-                value={ajusteFuncionarioId ? String(ajusteFuncionarioId) : ""}
-                onChange={(e) => setAjusteFuncionarioId(e.target.value ? Number(e.target.value) : null)}
-              >
-                <option value="">Selecione...</option>
-                {funcionariosFiltradosAjuste.map((f) => (
-                  <option key={f.id} value={String(f.id)}>
-                    {f.nome}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label>Mês</label>
-              <input type="month" value={ajusteMes} onChange={(e) => setAjusteMes(e.target.value)} />
-            </div>
-            <button onClick={carregarPontosAjuste} disabled={!ajusteFuncionarioId || ajusteLoading}>
-              {ajusteLoading ? "Carregando..." : "Carregar pontos"}
-            </button>
-          </div>
-
-          {ajusteError ? (
-            <>
-              <div className="spacer" />
-              <div className="card" style={{ borderColor: "#8a1f1f" }}>
-                Erro: {ajusteError}
-              </div>
-            </>
-          ) : null}
-          {ajusteResult ? (
-            <>
-              <div className="spacer" />
-              <div className="card" style={{ borderColor: "#16a34a" }}>
-                {ajusteResult}
-              </div>
-            </>
-          ) : null}
-
-          <div className="spacer" />
-          <div className="tableShell">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Tipo</th>
-                  <th>Data/hora</th>
-                  <th>Score</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ajustePontos.length === 0 ? (
-                  <tr>
-                    <td colSpan={5}>Sem pontos para os filtros selecionados.</td>
-                  </tr>
-                ) : (
-                  ajustePontos.map((p) => (
-                    <tr key={p.id}>
-                      <td>{p.id}</td>
-                      <td>
-                        {editingPontoId === p.id ? (
-                          <select
-                            value={editTipo}
-                            onChange={(e) => setEditTipo(e.target.value as "ENTRADA" | "SAIDA")}
-                          >
-                            <option value="ENTRADA">ENTRADA</option>
-                            <option value="SAIDA">SAIDA</option>
-                          </select>
-                        ) : (
-                          p.tipo
-                        )}
-                      </td>
-                      <td>
-                        {editingPontoId === p.id ? (
-                          <input
-                            type="datetime-local"
-                            value={editTimestamp}
-                            onChange={(e) => setEditTimestamp(e.target.value)}
-                          />
-                        ) : (
-                          new Date(p.timestamp).toLocaleString()
-                        )}
-                      </td>
-                      <td>{p.score ?? "-"}</td>
-                      <td>
-                        <div className="row" style={{ gap: 8 }}>
-                          {editingPontoId === p.id ? (
-                            <>
-                              <input
-                                placeholder="Motivo (opcional)"
-                                value={editMotivo}
-                                onChange={(e) => setEditMotivo(e.target.value)}
-                              />
-                              <button onClick={salvarEdicaoPonto}>Salvar</button>
-                              <button className="secondary" onClick={() => setEditingPontoId(null)}>
-                                Cancelar
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button className="secondary" onClick={() => iniciarEdicaoPonto(p)}>
-                                Editar
-                              </button>
-                              <button className="secondary" onClick={() => excluirPonto(p.id)}>
-                                Excluir
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
 
         {cameraOpen ? (
           <CameraModal

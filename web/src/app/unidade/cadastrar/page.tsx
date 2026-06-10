@@ -98,11 +98,12 @@ export default function CadastrarColaboradorPage() {
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [enrollResult, setEnrollResult] = useState<string | null>(null);
   const [processStatus, setProcessStatus] = useState<string | null>(null);
+  const [cadastroStep, setCadastroStep] = useState<1 | 2>(1);
   const selectedUnidade =
     role === "ADMIN"
       ? (unidades.find((u) => u.id === selectedUnidadeId) ?? null)
       : unidade;
-  const currentStep = enrollResult ? 3 : created ? 2 : 1;
+  const currentStep = enrollResult ? 4 : created ? 3 : cadastroStep;
 
   useEffect(() => {
     async function load() {
@@ -250,16 +251,21 @@ export default function CadastrarColaboradorPage() {
         <aside className="wizardSteps" aria-label="Etapas do cadastro">
           <div className={["wizardStep", currentStep === 1 ? "isActive" : currentStep > 1 ? "isDone" : ""].join(" ").trim()}>
             <span className="statusBadge statusBadgeInfo">Etapa 1</span>
-            <strong>Dados e jornada</strong>
-            <span>Nome, unidade, turno e horário previsto.</span>
+            <strong>Dados</strong>
+            <span>Nome e unidade do colaborador.</span>
           </div>
           <div className={["wizardStep", currentStep === 2 ? "isActive" : currentStep > 2 ? "isDone" : ""].join(" ").trim()}>
             <span className="statusBadge statusBadgeInfo">Etapa 2</span>
+            <strong>Jornada</strong>
+            <span>Turno, local e horário previsto.</span>
+          </div>
+          <div className={["wizardStep", currentStep === 3 ? "isActive" : currentStep > 3 ? "isDone" : ""].join(" ").trim()}>
+            <span className="statusBadge statusBadgeInfo">Etapa 3</span>
             <strong>Base facial</strong>
             <span>Capture as fotos para reconhecimento no ponto.</span>
           </div>
-          <div className={["wizardStep", currentStep === 3 ? "isDone" : ""].join(" ").trim()}>
-            <span className="statusBadge statusBadgeOk">Etapa 3</span>
+          <div className={["wizardStep", currentStep === 4 ? "isDone" : ""].join(" ").trim()}>
+            <span className="statusBadge statusBadgeOk">Etapa 4</span>
             <strong>Pronto para operar</strong>
             <span>Colaborador disponível no terminal de ponto.</span>
           </div>
@@ -276,83 +282,99 @@ export default function CadastrarColaboradorPage() {
           </>
             ) : null}
 
-        <form onSubmit={onSubmit}>
-          <div className="opsFormGrid">
-            <div className="opsFullWidth">
-              <label>Nome</label>
-              <input
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
-                required
-                minLength={2}
-                placeholder="Ex: João da Silva"
-              />
-            </div>
+        {!created ? (
+          <form onSubmit={onSubmit}>
+            {cadastroStep === 1 ? (
+              <div className="opsFormGrid">
+                <div className="opsFullWidth">
+                  <label>Nome</label>
+                  <input
+                    value={nome}
+                    onChange={(e) => setNome(e.target.value)}
+                    required
+                    minLength={2}
+                    placeholder="Ex: João da Silva"
+                  />
+                </div>
 
-            {role === "ADMIN" ? (
-              <div>
-                <label>Unidade</label>
-                <select
-                  value={selectedUnidadeId ? String(selectedUnidadeId) : ""}
-                  onChange={(e) => setSelectedUnidadeId(Number(e.target.value))}
-                  required
+                {role === "ADMIN" ? (
+                  <div className="opsFullWidth">
+                    <label>Unidade</label>
+                    <select
+                      value={selectedUnidadeId ? String(selectedUnidadeId) : ""}
+                      onChange={(e) => setSelectedUnidadeId(Number(e.target.value))}
+                      required
+                    >
+                      <option value="" disabled>
+                        Selecione...
+                      </option>
+                      {unidades.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.nome} (id={u.id})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : null}
+
+                <button
+                  type="button"
+                  disabled={nome.trim().length < 2 || (role === "ADMIN" && !selectedUnidadeId)}
+                  onClick={() => setCadastroStep(2)}
                 >
-                  <option value="" disabled>
-                    Selecione...
-                  </option>
-                  {unidades.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.nome} (id={u.id})
-                    </option>
-                  ))}
-                </select>
+                  Continuar
+                </button>
               </div>
-            ) : null}
-            <div>
-              <label>Turno</label>
-              <select
-                value={String(turno)}
-                onChange={(e) => setTurno(Number(e.target.value) as 1 | 2 | 3)}
-              >
-                <option value="1">Turno 1</option>
-                <option value="2">Turno 2</option>
-                <option value="3">Turno 3</option>
-              </select>
-            </div>
-            <div>
-              <label>Local</label>
-              <select
-                value={localTipo}
-                onChange={(e) => setLocalTipo(e.target.value as LocalTipo)}
-              >
-                <option value="LOJA">Unidade</option>
-                <option value="ESCRITORIO">Escritório</option>
-                <option value="CD">CD</option>
-              </select>
-            </div>
-            <div>
-              <label>Entrada prevista</label>
-              <input
-                type="time"
-                value={horaEntradaPrevista}
-                onChange={(e) => setHoraEntradaPrevista(e.target.value)}
-              />
-            </div>
-            <div>
-              <label>Saída prevista</label>
-              <input
-                type="time"
-                value={horaSaidaPrevista}
-                onChange={(e) => setHoraSaidaPrevista(e.target.value)}
-              />
-            </div>
-            <div>
-              <button type="submit" disabled={loading}>
-                {loading ? "Salvando..." : "Salvar colaborador"}
-              </button>
-            </div>
-          </div>
-        </form>
+            ) : (
+              <div className="opsFormGrid">
+                <div>
+                  <label>Turno</label>
+                  <select
+                    value={String(turno)}
+                    onChange={(e) => setTurno(Number(e.target.value) as 1 | 2 | 3)}
+                  >
+                    <option value="1">Turno 1</option>
+                    <option value="2">Turno 2</option>
+                    <option value="3">Turno 3</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Local</label>
+                  <select
+                    value={localTipo}
+                    onChange={(e) => setLocalTipo(e.target.value as LocalTipo)}
+                  >
+                    <option value="LOJA">Unidade</option>
+                    <option value="ESCRITORIO">Escritório</option>
+                    <option value="CD">CD</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Entrada prevista</label>
+                  <input
+                    type="time"
+                    value={horaEntradaPrevista}
+                    onChange={(e) => setHoraEntradaPrevista(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label>Saída prevista</label>
+                  <input
+                    type="time"
+                    value={horaSaidaPrevista}
+                    onChange={(e) => setHoraSaidaPrevista(e.target.value)}
+                  />
+                </div>
+                <button type="button" className="secondary" onClick={() => setCadastroStep(1)} disabled={loading}>
+                  Voltar
+                </button>
+                <button type="submit" disabled={loading}>
+                  {loading ? "Salvando..." : "Salvar colaborador"}
+                </button>
+              </div>
+            )}
+          </form>
+        ) : null}
 
         {error ? (
           <>
