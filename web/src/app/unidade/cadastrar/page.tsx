@@ -90,8 +90,8 @@ export default function CadastrarColaboradorPage() {
   const [nome, setNome] = useState("");
   const [turno, setTurno] = useState<1 | 2 | 3>(1);
   const [localTipo, setLocalTipo] = useState<LocalTipo>("LOJA");
-  const [horaEntradaPrevista, setHoraEntradaPrevista] = useState("");
-  const [horaSaidaPrevista, setHoraSaidaPrevista] = useState("");
+  const [horaEntradaPrevista, setHoraEntradaPrevista] = useState("08:00");
+  const [horaSaidaPrevista, setHoraSaidaPrevista] = useState("17:00");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<Funcionario | null>(null);
@@ -308,7 +308,7 @@ export default function CadastrarColaboradorPage() {
               </select>
             </div>
             <div style={{ flex: 1 }}>
-              <label>Entrada prevista (opcional)</label>
+              <label>Entrada prevista</label>
               <input
                 type="time"
                 value={horaEntradaPrevista}
@@ -316,7 +316,7 @@ export default function CadastrarColaboradorPage() {
               />
             </div>
             <div style={{ flex: 1 }}>
-              <label>Saída prevista (opcional)</label>
+              <label>Saída prevista</label>
               <input
                 type="time"
                 value={horaSaidaPrevista}

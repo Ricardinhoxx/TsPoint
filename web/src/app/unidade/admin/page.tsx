@@ -32,6 +32,9 @@ type Pagination = {
   total_pages: number;
 };
 
+const DEFAULT_HORA_ENTRADA = "08:00";
+const DEFAULT_HORA_SAIDA = "17:00";
+
 export default function AdminAssignmentsPage() {
   const [unidades, setUnidades] = useState<Unidade[]>([]);
   const [supervisors, setSupervisors] = useState<Supervisor[]>([]);
@@ -755,7 +758,7 @@ export default function AdminAssignmentsPage() {
                     <td>
                       <input
                         type="time"
-                        value={f.hora_entrada_prevista ?? ""}
+                        value={f.hora_entrada_prevista ?? DEFAULT_HORA_ENTRADA}
                         onChange={(e) => {
                           const value = e.target.value || null;
                           setFuncionarios((prev) =>
@@ -769,7 +772,7 @@ export default function AdminAssignmentsPage() {
                     <td>
                       <input
                         type="time"
-                        value={f.hora_saida_prevista ?? ""}
+                        value={f.hora_saida_prevista ?? DEFAULT_HORA_SAIDA}
                         onChange={(e) => {
                           const value = e.target.value || null;
                           setFuncionarios((prev) =>

@@ -22,8 +22,12 @@ type DayPersonItem = {
   status_day: DayStatus;
   hora_entrada_prevista?: string | null;
   hora_saida_prevista?: string | null;
+  hora_extra_minutos?: number;
   kind?: "FUNCIONARIO" | "DIARISTA";
 };
+
+const DEFAULT_HORA_ENTRADA = "08:00";
+const DEFAULT_HORA_SAIDA = "17:00";
 
 function parseDateOnly(raw: string | null): string | null {
   if (!raw) return null;
@@ -243,17 +247,27 @@ export async function GET(req: Request) {
             total: number;
             hora_entrada_prevista: string | null;
             hora_saida_prevista: string | null;
+            hora_extra_minutos: number;
           }[]
         >`
           SELECT
             f.id,
             f.nome,
             COALESCE(p.total, 0)::int AS total,
-            TO_CHAR(f.hora_entrada_prevista, 'HH24:MI') as hora_entrada_prevista,
-            TO_CHAR(f.hora_saida_prevista, 'HH24:MI') as hora_saida_prevista
+            TO_CHAR(COALESCE(f.hora_entrada_prevista, ${`${DEFAULT_HORA_ENTRADA}:00`}::time), 'HH24:MI') as hora_entrada_prevista,
+            TO_CHAR(COALESCE(f.hora_saida_prevista, ${`${DEFAULT_HORA_SAIDA}:00`}::time), 'HH24:MI') as hora_saida_prevista,
+            COALESCE(
+              GREATEST(
+                0,
+                FLOOR(EXTRACT(EPOCH FROM (
+                  p.last_ts - (${selectedDay}::date + COALESCE(f.hora_saida_prevista, ${`${DEFAULT_HORA_SAIDA}:00`}::time))
+                )) / 60)
+              )::int,
+              0
+            ) AS hora_extra_minutos
           FROM funcionario f
           LEFT JOIN (
-            SELECT funcionario_id, COUNT(*)::int AS total
+            SELECT funcionario_id, COUNT(*)::int AS total, MAX("timestamp") AS last_ts
             FROM ponto
             WHERE unidade_id = ${scopeUnidadeId}
               AND "timestamp" >= ${selectedDay}::date
@@ -271,6 +285,7 @@ export async function GET(req: Request) {
             total: number;
             hora_entrada_prevista: string | null;
             hora_saida_prevista: string | null;
+            hora_extra_minutos: number;
           }[]
         >)
       : await (sql<
@@ -280,17 +295,27 @@ export async function GET(req: Request) {
             total: number;
             hora_entrada_prevista: string | null;
             hora_saida_prevista: string | null;
+            hora_extra_minutos: number;
           }[]
         >`
           SELECT
             f.id,
             f.nome,
             COALESCE(p.total, 0)::int AS total,
-            TO_CHAR(f.hora_entrada_prevista, 'HH24:MI') as hora_entrada_prevista,
-            TO_CHAR(f.hora_saida_prevista, 'HH24:MI') as hora_saida_prevista
+            TO_CHAR(COALESCE(f.hora_entrada_prevista, ${`${DEFAULT_HORA_ENTRADA}:00`}::time), 'HH24:MI') as hora_entrada_prevista,
+            TO_CHAR(COALESCE(f.hora_saida_prevista, ${`${DEFAULT_HORA_SAIDA}:00`}::time), 'HH24:MI') as hora_saida_prevista,
+            COALESCE(
+              GREATEST(
+                0,
+                FLOOR(EXTRACT(EPOCH FROM (
+                  p.last_ts - (${selectedDay}::date + COALESCE(f.hora_saida_prevista, ${`${DEFAULT_HORA_SAIDA}:00`}::time))
+                )) / 60)
+              )::int,
+              0
+            ) AS hora_extra_minutos
           FROM funcionario f
           LEFT JOIN (
-            SELECT funcionario_id, COUNT(*)::int AS total
+            SELECT funcionario_id, COUNT(*)::int AS total, MAX("timestamp") AS last_ts
             FROM ponto
             WHERE "timestamp" >= ${selectedDay}::date
               AND "timestamp" < ${nextSelectedDay}::date
@@ -306,6 +331,7 @@ export async function GET(req: Request) {
             total: number;
             hora_entrada_prevista: string | null;
             hora_saida_prevista: string | null;
+            hora_extra_minutos: number;
           }[]
         >);
 
@@ -342,6 +368,7 @@ export async function GET(req: Request) {
       status_day: r.total > 0 ? "PRESENT" : deriveNoRecordStatus(selectedDay, today),
       hora_entrada_prevista: r.hora_entrada_prevista,
       hora_saida_prevista: r.hora_saida_prevista,
+      hora_extra_minutos: r.hora_extra_minutos,
       kind: "FUNCIONARIO"
     }));
     for (const d of diaristasRows) {

@@ -11,6 +11,8 @@ Ambiente atual de desenvolvimento: o banco ainda esta em Fly Managed Postgres e 
 
 Estado operacional detalhado, pendencias e contexto para agentes: [`docs/AGENT_HANDOFF.md`](docs/AGENT_HANDOFF.md).
 
+Guia visual e padroes de interface: [`docs/DESIGN.md`](docs/DESIGN.md).
+
 ## Contratos JSON
 
 Gateway (Next.js):

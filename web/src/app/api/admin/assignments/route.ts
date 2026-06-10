@@ -23,6 +23,9 @@ type FuncionarioRow = {
   hora_saida_prevista: string | null;
 };
 
+const DEFAULT_HORA_ENTRADA = "08:00";
+const DEFAULT_HORA_SAIDA = "17:00";
+
 function normalizeRole(raw: unknown): Role | null {
   const role = String(raw ?? "").trim().toUpperCase();
   if (role === "ADMIN" || role === "SUPERVISOR") return role;
@@ -105,8 +108,8 @@ export async function GET(req: Request) {
               nome,
               unidade_id,
               status,
-              TO_CHAR(hora_entrada_prevista, 'HH24:MI') as hora_entrada_prevista,
-              TO_CHAR(hora_saida_prevista, 'HH24:MI') as hora_saida_prevista
+              TO_CHAR(COALESCE(hora_entrada_prevista, ${`${DEFAULT_HORA_ENTRADA}:00`}::time), 'HH24:MI') as hora_entrada_prevista,
+              TO_CHAR(COALESCE(hora_saida_prevista, ${`${DEFAULT_HORA_SAIDA}:00`}::time), 'HH24:MI') as hora_saida_prevista
             FROM funcionario
             WHERE unidade_id = ${unidadeId}
               AND nome ILIKE ${`%${funcionarioSearch}%`}
@@ -119,8 +122,8 @@ export async function GET(req: Request) {
               nome,
               unidade_id,
               status,
-              TO_CHAR(hora_entrada_prevista, 'HH24:MI') as hora_entrada_prevista,
-              TO_CHAR(hora_saida_prevista, 'HH24:MI') as hora_saida_prevista
+              TO_CHAR(COALESCE(hora_entrada_prevista, ${`${DEFAULT_HORA_ENTRADA}:00`}::time), 'HH24:MI') as hora_entrada_prevista,
+              TO_CHAR(COALESCE(hora_saida_prevista, ${`${DEFAULT_HORA_SAIDA}:00`}::time), 'HH24:MI') as hora_saida_prevista
             FROM funcionario
             WHERE unidade_id = ${unidadeId}
             ORDER BY nome ASC
@@ -133,8 +136,8 @@ export async function GET(req: Request) {
               nome,
               unidade_id,
               status,
-              TO_CHAR(hora_entrada_prevista, 'HH24:MI') as hora_entrada_prevista,
-              TO_CHAR(hora_saida_prevista, 'HH24:MI') as hora_saida_prevista
+              TO_CHAR(COALESCE(hora_entrada_prevista, ${`${DEFAULT_HORA_ENTRADA}:00`}::time), 'HH24:MI') as hora_entrada_prevista,
+              TO_CHAR(COALESCE(hora_saida_prevista, ${`${DEFAULT_HORA_SAIDA}:00`}::time), 'HH24:MI') as hora_saida_prevista
             FROM funcionario
             WHERE nome ILIKE ${`%${funcionarioSearch}%`}
             ORDER BY nome ASC
@@ -146,8 +149,8 @@ export async function GET(req: Request) {
               nome,
               unidade_id,
               status,
-              TO_CHAR(hora_entrada_prevista, 'HH24:MI') as hora_entrada_prevista,
-              TO_CHAR(hora_saida_prevista, 'HH24:MI') as hora_saida_prevista
+              TO_CHAR(COALESCE(hora_entrada_prevista, ${`${DEFAULT_HORA_ENTRADA}:00`}::time), 'HH24:MI') as hora_entrada_prevista,
+              TO_CHAR(COALESCE(hora_saida_prevista, ${`${DEFAULT_HORA_SAIDA}:00`}::time), 'HH24:MI') as hora_saida_prevista
             FROM funcionario
             ORDER BY nome ASC
             LIMIT ${pageSize} OFFSET ${offset}
@@ -264,11 +267,11 @@ export async function PATCH(req: Request) {
           SET
             unidade_id = ${nextUnidadeId},
             hora_entrada_prevista = CASE
-              WHEN ${clearHoraEntrada} THEN NULL
+              WHEN ${clearHoraEntrada} THEN ${`${DEFAULT_HORA_ENTRADA}:00`}::time
               ELSE COALESCE(${horaEntrada ? `${horaEntrada}:00` : null}::time, hora_entrada_prevista)
             END,
             hora_saida_prevista = CASE
-              WHEN ${clearHoraSaida} THEN NULL
+              WHEN ${clearHoraSaida} THEN ${`${DEFAULT_HORA_SAIDA}:00`}::time
               ELSE COALESCE(${horaSaida ? `${horaSaida}:00` : null}::time, hora_saida_prevista)
             END
           WHERE id = ${id}

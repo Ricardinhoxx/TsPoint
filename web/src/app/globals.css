@@ -1306,7 +1306,7 @@ video {
 .presenceWireLayout {
   margin-top: 12px;
   display: grid;
-  grid-template-columns: 128px 1fr 240px;
+  grid-template-columns: 128px minmax(0, 1fr) 320px;
   gap: 14px;
 }
 
@@ -1438,6 +1438,33 @@ video {
   gap: 10px;
 }
 
+.presencePeopleHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+  border-bottom: 1px solid #dbe3ef;
+  padding-bottom: 10px;
+}
+
+.presencePeopleHeader small {
+  display: block;
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.presencePeopleHeader strong {
+  min-width: 34px;
+  text-align: center;
+  border: 1px solid #c7d6eb;
+  background: #ffffff;
+  color: #1e3a8a;
+  padding: 4px 8px;
+  font-size: 14px;
+}
+
 .presenceRankingItem {
   border: 1px solid #d6e2f3;
   padding: 10px 12px;
@@ -1450,18 +1477,120 @@ video {
   border-radius: var(--radius-0);
 }
 
-.presencePersonSchedule {
-  margin-top: 4px;
+.presencePersonCard {
+  border: 1px solid #d6e2f3;
+  background: #ffffff;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 10px;
+  border-radius: var(--radius-0);
+}
+
+.presencePersonTop,
+.presencePersonBody {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.presencePersonName {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.presencePersonStatusOk,
+.presencePersonStatusPending,
+.presencePersonStatusAbsent {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 74px;
+  border: 1px solid transparent;
+  padding: 3px 7px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.presencePersonStatusOk {
+  background: #ecfdf3;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.presencePersonStatusPending {
+  background: #ffffff;
+  border-color: #94a3b8;
+  color: #475569;
+}
+
+.presencePersonStatusAbsent {
+  background: #fff1f2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+.presencePersonSchedule {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(66px, 1fr));
+  gap: 6px;
   font-size: 12px;
   line-height: 1.2;
   color: #475569;
   font-weight: 500;
+  flex: 1;
 }
 
 .presencePersonSchedule span {
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  padding: 6px 8px;
+  white-space: nowrap;
+}
+
+.presencePersonSchedule small {
+  display: block;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.presencePersonSchedule strong {
+  display: block;
+  margin-top: 2px;
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.presenceOvertimeBadge {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 4px;
+  border: 1px solid #f59e0b;
+  background: #fffbeb;
+  color: #78350f;
+  padding: 3px 6px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.presenceNoOvertime {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 1px;
+  border: 1px solid #dbe3ef;
+  background: #ffffff;
+  color: #64748b;
+  padding: 3px 6px;
+  font-size: 12px;
+  font-weight: 700;
   white-space: nowrap;
 }
 

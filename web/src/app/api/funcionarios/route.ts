@@ -8,6 +8,9 @@ export const runtime = "nodejs";
 type LocalTipo = "LOJA" | "ESCRITORIO" | "CD";
 type TimeHHMM = string;
 
+const DEFAULT_HORA_ENTRADA = "08:00";
+const DEFAULT_HORA_SAIDA = "17:00";
+
 function parseTurno(raw: unknown): 1 | 2 | 3 | null {
   const n = Number(raw);
   if (n === 1 || n === 2 || n === 3) return n;
@@ -63,8 +66,8 @@ export async function GET(req: Request) {
             f.turno,
             f.local_tipo::text as local_tipo,
             f.status,
-            TO_CHAR(f.hora_entrada_prevista, 'HH24:MI') as hora_entrada_prevista,
-            TO_CHAR(f.hora_saida_prevista, 'HH24:MI') as hora_saida_prevista,
+            TO_CHAR(COALESCE(f.hora_entrada_prevista, ${`${DEFAULT_HORA_ENTRADA}:00`}::time), 'HH24:MI') as hora_entrada_prevista,
+            TO_CHAR(COALESCE(f.hora_saida_prevista, ${`${DEFAULT_HORA_SAIDA}:00`}::time), 'HH24:MI') as hora_saida_prevista,
             f.unidade_id,
             u.nome AS unidade_nome,
             COALESCE(fe.embeddings, 0)::int as face_embeddings
@@ -111,8 +114,8 @@ export async function GET(req: Request) {
             f.turno,
             f.local_tipo::text as local_tipo,
             f.status,
-            TO_CHAR(f.hora_entrada_prevista, 'HH24:MI') as hora_entrada_prevista,
-            TO_CHAR(f.hora_saida_prevista, 'HH24:MI') as hora_saida_prevista,
+            TO_CHAR(COALESCE(f.hora_entrada_prevista, ${`${DEFAULT_HORA_ENTRADA}:00`}::time), 'HH24:MI') as hora_entrada_prevista,
+            TO_CHAR(COALESCE(f.hora_saida_prevista, ${`${DEFAULT_HORA_SAIDA}:00`}::time), 'HH24:MI') as hora_saida_prevista,
             f.unidade_id,
             u.nome AS unidade_nome,
             COALESCE(fe.embeddings, 0)::int as face_embeddings
@@ -183,14 +186,16 @@ export async function POST(req: Request) {
     if (!localTipo) {
       return NextResponse.json({ error: "INVALID_LOCAL_TIPO" }, { status: 400 });
     }
-    const horaEntrada = parseTimeHHMM(body?.hora_entrada_prevista);
-    const horaSaida = parseTimeHHMM(body?.hora_saida_prevista);
-    if (body && "hora_entrada_prevista" in body && body.hora_entrada_prevista && !horaEntrada) {
+    const horaEntradaParsed = parseTimeHHMM(body?.hora_entrada_prevista);
+    const horaSaidaParsed = parseTimeHHMM(body?.hora_saida_prevista);
+    if (body && "hora_entrada_prevista" in body && body.hora_entrada_prevista && !horaEntradaParsed) {
       return NextResponse.json({ error: "INVALID_HORA_ENTRADA" }, { status: 400 });
     }
-    if (body && "hora_saida_prevista" in body && body.hora_saida_prevista && !horaSaida) {
+    if (body && "hora_saida_prevista" in body && body.hora_saida_prevista && !horaSaidaParsed) {
       return NextResponse.json({ error: "INVALID_HORA_SAIDA" }, { status: 400 });
     }
+    const horaEntrada = horaEntradaParsed ?? DEFAULT_HORA_ENTRADA;
+    const horaSaida = horaSaidaParsed ?? DEFAULT_HORA_SAIDA;
 
     const isAdmin = isAdminSession(auth.session);
     const unidadeId = isAdmin
@@ -224,8 +229,8 @@ export async function POST(req: Request) {
         ${localTipo}::local_tipo,
         ${unidadeId},
         'ATIVO',
-        ${horaEntrada ? `${horaEntrada}:00` : null}::time,
-        ${horaSaida ? `${horaSaida}:00` : null}::time
+        ${`${horaEntrada}:00`}::time,
+        ${`${horaSaida}:00`}::time
       )
       RETURNING
         id,
@@ -378,11 +383,11 @@ export async function PATCH(req: Request) {
         turno = COALESCE(${turno ?? null}, turno),
         local_tipo = COALESCE(${localTipo ?? null}::local_tipo, local_tipo),
         hora_entrada_prevista = CASE
-          WHEN ${clearHoraEntrada} THEN NULL
+          WHEN ${clearHoraEntrada} THEN ${`${DEFAULT_HORA_ENTRADA}:00`}::time
           ELSE COALESCE(${horaEntrada ? `${horaEntrada}:00` : null}::time, hora_entrada_prevista)
         END,
         hora_saida_prevista = CASE
-          WHEN ${clearHoraSaida} THEN NULL
+          WHEN ${clearHoraSaida} THEN ${`${DEFAULT_HORA_SAIDA}:00`}::time
           ELSE COALESCE(${horaSaida ? `${horaSaida}:00` : null}::time, hora_saida_prevista)
         END,
         status = COALESCE(${status ?? null}, status)

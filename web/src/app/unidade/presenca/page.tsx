@@ -39,6 +39,7 @@ type DayPersonItem = {
   status_day: DayStatus;
   hora_entrada_prevista?: string | null;
   hora_saida_prevista?: string | null;
+  hora_extra_minutos?: number;
 };
 
 type PresenceApiResponse = {
@@ -108,6 +109,20 @@ function squareClass(status: DayStatus) {
   return "presenceSquareRed";
 }
 
+function statusPillClass(status: DayStatus) {
+  if (status === "PRESENT") return "presencePersonStatusOk";
+  if (status === "PENDING") return "presencePersonStatusPending";
+  return "presencePersonStatusAbsent";
+}
+
+function fmtMinutes(totalMinutes: number) {
+  const safeMinutes = Math.max(0, Math.floor(totalMinutes));
+  const hours = Math.floor(safeMinutes / 60);
+  const minutes = safeMinutes % 60;
+  if (hours <= 0) return `${minutes}min`;
+  return `${hours}h${String(minutes).padStart(2, "0")}`;
+}
+
 export default function PresencaPage() {
   const [unidades, setUnidades] = useState<Unidade[]>([]);
   const [lojaId, setLojaId] = useState<number | "ALL">("ALL");
@@ -172,7 +187,7 @@ export default function PresencaPage() {
         setDays([]);
         setRanking([]);
         setDayPeople([]);
-        setError(e instanceof Error ? e.message : "Erro ao carregar presença.");
+        setError(e instanceof Error ? e.message : "Erro ao carregar pontos.");
       } finally {
         setLoading(false);
       }
@@ -220,9 +235,9 @@ export default function PresencaPage() {
     <div className="containerWide presencePageShell">
       <section className="presenceHero">
         <div>
-          <p className="presenceKicker">Visão da presença</p>
-          <h1 className="presenceTitle">Presença por loja</h1>
-          <p className="presenceSubtitle">Acompanhamento diário por período, com foco na operação de campo.</p>
+          <p className="presenceKicker">Visão dos pontos</p>
+          <h1 className="presenceTitle">Pontos</h1>
+          <p className="presenceSubtitle">Acompanhamento diário dos registros por loja, jornada e hora extra.</p>
         </div>
         <Link className="btnLink secondary" href="/unidade">
           Voltar para unidade
@@ -239,7 +254,7 @@ export default function PresencaPage() {
           <strong>{summary.total}</strong>
         </div>
         <div className="presenceSummaryCard">
-          <small>Presenças</small>
+          <small>Dias com ponto</small>
           <strong>{summary.present}</strong>
         </div>
         <div className="presenceSummaryCard">
@@ -282,7 +297,7 @@ export default function PresencaPage() {
         <div className="presenceFilterField">
           <label>Painel lateral</label>
           <select value={rightPanelMode} onChange={(e) => setRightPanelMode(e.target.value as RightPanelMode)}>
-            <option value="DAY">Lista do dia</option>
+            <option value="DAY">Pontos do dia</option>
             <option value="RANKING">Ranking de faltas</option>
           </select>
         </div>
@@ -302,7 +317,7 @@ export default function PresencaPage() {
         </aside>
 
         <main className="presenceWireMain">
-          {loading ? <div className="card">Carregando dados de presença...</div> : null}
+          {loading ? <div className="card">Carregando dados de pontos...</div> : null}
           {!loading && period === "WEEK" ? (
             <div className="presenceWeekList">
               {weekRows.map((d) => {
@@ -388,17 +403,34 @@ export default function PresencaPage() {
         </main>
 
         <aside className="presenceWireRightRail">
-          <h2 className="presencePanelTitle">{rightPanelMode === "DAY" ? "Lista do dia" : "Ranking de faltas"}</h2>
+          <div className="presencePeopleHeader">
+            <div>
+              <h2 className="presencePanelTitle">{rightPanelMode === "DAY" ? "Pontos do dia" : "Ranking de faltas"}</h2>
+              {rightPanelMode === "DAY" && selectedDay ? (
+                <small>{fmtWeekday(selectedDay)} • {fmtDatePt(selectedDay)}</small>
+              ) : null}
+            </div>
+            {rightPanelMode === "DAY" ? <strong>{filteredDayPeople.length}</strong> : null}
+          </div>
           {rightPanelMode === "DAY" && filteredDayPeople.map((p) => (
-            <div key={p.funcionario_id} className="presenceRankingItem">
-              <div>
-                <span>{p.nome}</span>
-                <div className="presencePersonSchedule">
-                  <span>Entrada: {p.hora_entrada_prevista ?? "--:--"}</span>
-                  <span>Saída: {p.hora_saida_prevista ?? "--:--"}</span>
-                </div>
+            <div key={p.funcionario_id} className="presencePersonCard">
+              <div className="presencePersonTop">
+                <span className="presencePersonName">{p.nome}</span>
+                <span className={statusPillClass(p.status_day)}>{statusLabel(p.status_day)}</span>
               </div>
-              <span className={squareClass(p.status_day)} />
+              <div className="presencePersonBody">
+                <div className="presencePersonSchedule">
+                  <span><small>Entrada</small><strong>{p.hora_entrada_prevista ?? "--:--"}</strong></span>
+                  <span><small>Saída</small><strong>{p.hora_saida_prevista ?? "--:--"}</strong></span>
+                </div>
+                {Number(p.hora_extra_minutos ?? 0) > 0 ? (
+                  <strong className="presenceOvertimeBadge">
+                    Hora extra: {fmtMinutes(Number(p.hora_extra_minutos ?? 0))}
+                  </strong>
+                ) : (
+                  <span className="presenceNoOvertime">Sem hora extra</span>
+                )}
+              </div>
             </div>
           ))}
           {rightPanelMode === "RANKING" && ranking.map((r) => (

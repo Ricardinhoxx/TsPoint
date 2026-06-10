@@ -32,6 +32,9 @@ type DiaristaTipo = "SUBSTITUICAO" | "DEMANDA";
 
 type Unidade = { id: number; nome: string };
 
+const DEFAULT_HORA_ENTRADA = "08:00";
+const DEFAULT_HORA_SAIDA = "17:00";
+
 export default function MinhaUnidadePage() {
   const [unidade, setUnidade] = useState<Unidade | null>(null);
   const [role, setRole] = useState<"ADMIN" | "SUPERVISOR">("SUPERVISOR");
@@ -444,7 +447,7 @@ export default function MinhaUnidadePage() {
                 Cadastrar colaborador
               </Link>
               <Link className="btnLink secondary" href="/unidade/presenca">
-                Presença
+                Pontos
               </Link>
               <button className="secondary" onClick={openDiaristaModal}>
                 Registrar diarista
@@ -490,7 +493,7 @@ export default function MinhaUnidadePage() {
                     role="menuitem"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    Presença
+                    Pontos
                   </Link>
                   <button type="button" className="mobileNavItem" role="menuitem" onClick={openDiaristaModal}>
                     Registrar diarista
@@ -532,7 +535,7 @@ export default function MinhaUnidadePage() {
                     <td>{f.nome}</td>
                     <td>{f.turno}</td>
                     <td>
-                      {(f.hora_entrada_prevista || "--:--")} - {(f.hora_saida_prevista || "--:--")}
+                      {(f.hora_entrada_prevista || DEFAULT_HORA_ENTRADA)} - {(f.hora_saida_prevista || DEFAULT_HORA_SAIDA)}
                     </td>
                     <td>
                       <span className="storeChip">{f.unidade_nome ?? "Loja não definida"}</span>{" "}
