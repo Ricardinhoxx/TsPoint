@@ -129,7 +129,8 @@ export default function PresencaPage() {
   const [period, setPeriod] = useState<Period>("WEEK");
   const [refDate, setRefDate] = useState(() => toDateOnly(new Date()));
   const [statusFilter, setStatusFilter] = useState<"ALL" | DayStatus>("ALL");
-  const [loading, setLoading] = useState(false);
+  const [unidadesLoaded, setUnidadesLoaded] = useState(false);
+  const [initialPointsLoaded, setInitialPointsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [days, setDays] = useState<Array<PresencaDay | PresencaDayAll>>([]);
   const [ranking, setRanking] = useState<RankingItem[]>([]);
@@ -158,12 +159,14 @@ export default function PresencaPage() {
       if (list.length === 1) setLojaId(list[0].id);
     }
 
-    loadUnidades().catch((e) => setError(e instanceof Error ? e.message : "Erro ao carregar lojas."));
+    loadUnidades()
+      .catch((e) => setError(e instanceof Error ? e.message : "Erro ao carregar lojas."))
+      .finally(() => setUnidadesLoaded(true));
   }, []);
 
   useEffect(() => {
     async function loadPresenca() {
-      setLoading(true);
+      if (!unidadesLoaded) return;
       setError(null);
       try {
         const qs = new URLSearchParams();
@@ -189,11 +192,11 @@ export default function PresencaPage() {
         setDayPeople([]);
         setError(e instanceof Error ? e.message : "Erro ao carregar pontos.");
       } finally {
-        setLoading(false);
+        setInitialPointsLoaded(true);
       }
     }
     loadPresenca().catch(() => null);
-  }, [lojaId, period, refDate, selectedDay, rightPanelMode]);
+  }, [lojaId, period, refDate, selectedDay, rightPanelMode, unidadesLoaded]);
 
   const weekRows = useMemo(() => {
     return days
@@ -230,6 +233,17 @@ export default function PresencaPage() {
   useEffect(() => {
     setSelectedDay(null);
   }, [period, refDate, lojaId]);
+
+  if (!unidadesLoaded || !initialPointsLoaded) {
+    return (
+      <div className="containerWide presencePageShell">
+        <div className="presenceLoadingScreen">
+          <strong>Carregando pontos...</strong>
+          <span>Preparando a visão completa dos registros.</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="containerWide presencePageShell">
@@ -317,8 +331,7 @@ export default function PresencaPage() {
         </aside>
 
         <main className="presenceWireMain">
-          {loading ? <div className="card">Carregando dados de pontos...</div> : null}
-          {!loading && period === "WEEK" ? (
+          {period === "WEEK" ? (
             <div className="presenceWeekList">
               {weekRows.map((d) => {
                 const fraction = "present_count" in d
@@ -345,7 +358,7 @@ export default function PresencaPage() {
             </div>
           ) : null}
 
-          {!loading && period === "MONTH" ? (
+          {period === "MONTH" ? (
             <div className="presenceMonthGrid">
               {weekRows.map((d) => {
                 const dayNum = Number(d.day.slice(-2));
@@ -374,7 +387,7 @@ export default function PresencaPage() {
             </div>
           ) : null}
 
-          {!loading && period === "YEAR" ? (
+          {period === "YEAR" ? (
             <div className="presenceWeekList">
               {weekRows.map((d) => {
                 const fraction = "present_count" in d
