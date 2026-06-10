@@ -28,7 +28,7 @@ function friendlyErrorMessage(raw: unknown): string {
     case "INVALID_TURNO":
       return "Turno inválido. Selecione 1, 2 ou 3.";
     case "INVALID_LOCAL_TIPO":
-      return "Local inválido. Selecione Loja, Escritório ou CD.";
+      return "Local inválido. Selecione Unidade, Escritório ou CD.";
     case "INVALID_UNIDADE":
       return "Unidade inválida. Selecione uma unidade válida.";
     case "DUPLICATE_KEY":
@@ -302,7 +302,7 @@ export default function CadastrarColaboradorPage() {
                 value={localTipo}
                 onChange={(e) => setLocalTipo(e.target.value as LocalTipo)}
               >
-                <option value="LOJA">Loja</option>
+                <option value="LOJA">Unidade</option>
                 <option value="ESCRITORIO">Escritório</option>
                 <option value="CD">CD</option>
               </select>

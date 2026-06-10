@@ -254,7 +254,7 @@ export default function AdminAssignmentsPage() {
   async function createUnidade() {
     const nome = newUnidadeNome.trim();
     if (nome.length < 2) {
-      setError("Nome da loja deve ter ao menos 2 caracteres.");
+      setError("Nome da unidade deve ter ao menos 2 caracteres.");
       return;
     }
 
@@ -273,13 +273,13 @@ export default function AdminAssignmentsPage() {
       const unidade = data?.unidade as Unidade | undefined;
       setStatusMsg(
         unidade
-          ? `Loja criada com sucesso: ${unidade.nome} (id=${unidade.id}).`
-          : "Loja criada com sucesso."
+          ? `Unidade criada com sucesso: ${unidade.nome} (id=${unidade.id}).`
+          : "Unidade criada com sucesso."
       );
       setNewUnidadeNome("");
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Falha ao criar loja");
+      setError(e instanceof Error ? e.message : "Falha ao criar unidade");
     } finally {
       setCreatingUnidade(false);
     }
@@ -287,17 +287,17 @@ export default function AdminAssignmentsPage() {
 
   async function deleteUnidade() {
     if (!deleteUnidadeId) {
-      setError("Selecione uma loja para apagar.");
+      setError("Selecione uma unidade para apagar.");
       return;
     }
 
     const target = unidades.find((u) => u.id === deleteUnidadeId);
     const firstOk = window.confirm(
-      `Deseja apagar a loja ${target?.nome ?? `id=${deleteUnidadeId}`}?`
+      `Deseja apagar a unidade ${target?.nome ?? `id=${deleteUnidadeId}`}?`
     );
     if (!firstOk) return;
 
-    const token = window.prompt('Digite APAGAR para confirmar a exclusão da loja:');
+    const token = window.prompt('Digite APAGAR para confirmar a exclusão da unidade:');
     if ((token ?? "").trim().toUpperCase() !== "APAGAR") {
       setError("Confirmação inválida. Exclusão cancelada.");
       return;
@@ -315,7 +315,7 @@ export default function AdminAssignmentsPage() {
         const code = String(data?.error ?? `HTTP ${res.status}`);
         if (code === "UNIDADE_IN_USE") {
           throw new Error(
-            "Não é possível apagar esta loja porque ela está em uso (supervisores, colaboradores ou pontos)."
+            "Não é possível apagar esta unidade porque ela está em uso (supervisores, colaboradores ou pontos)."
           );
         }
         throw new Error(code);
@@ -324,13 +324,13 @@ export default function AdminAssignmentsPage() {
       const unidade = data?.unidade as Unidade | undefined;
       setStatusMsg(
         unidade
-          ? `Loja apagada com sucesso: ${unidade.nome} (id=${unidade.id}).`
-          : "Loja apagada com sucesso."
+          ? `Unidade apagada com sucesso: ${unidade.nome} (id=${unidade.id}).`
+          : "Unidade apagada com sucesso."
       );
       setDeleteUnidadeId(null);
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Falha ao apagar loja");
+      setError(e instanceof Error ? e.message : "Falha ao apagar unidade");
     } finally {
       setDeletingUnidade(false);
     }
@@ -338,7 +338,7 @@ export default function AdminAssignmentsPage() {
 
   async function createTabletAccess() {
     if (!tabletUnidadeId) {
-      setError("Selecione uma loja para gerar o link do tablet.");
+      setError("Selecione uma unidade para gerar o link do tablet.");
       return;
     }
 
@@ -427,7 +427,7 @@ export default function AdminAssignmentsPage() {
         <div>
           <h1 style={{ margin: 0 }}>Admin - Funções e atribuições</h1>
           <small className="muted">
-            Defina papel e loja para supervisores e loja para colaboradores.
+            Defina papel e unidade para supervisores e unidade para colaboradores.
           </small>
         </div>
         <Link className="btnLink secondary" href="/unidade">
@@ -454,10 +454,10 @@ export default function AdminAssignmentsPage() {
       <div className="spacer" />
 
       <div className="card">
-        <h2 style={{ marginTop: 0 }}>Links de tablet por loja</h2>
+        <h2 style={{ marginTop: 0 }}>Links de tablet por unidade</h2>
         <div className="row" style={{ alignItems: "flex-end", flexWrap: "wrap" }}>
           <div style={{ minWidth: 260, flex: 1 }}>
-            <label>Loja</label>
+            <label>Unidade</label>
             <select
               value={tabletUnidadeId ? String(tabletUnidadeId) : ""}
               onChange={(e) => setTabletUnidadeId(e.target.value ? Number(e.target.value) : null)}
@@ -496,7 +496,7 @@ export default function AdminAssignmentsPage() {
           <table>
             <thead>
               <tr>
-                <th>Loja</th>
+                <th>Unidade</th>
                 <th>Dispositivo</th>
                 <th>Token</th>
                 <th>Status</th>
@@ -546,18 +546,18 @@ export default function AdminAssignmentsPage() {
       <div className="spacer" />
 
       <div className="card">
-        <h2 style={{ marginTop: 0 }}>Criar loja</h2>
+        <h2 style={{ marginTop: 0 }}>Criar unidade</h2>
         <div className="row" style={{ alignItems: "flex-end", flexWrap: "wrap" }}>
           <div style={{ minWidth: 320, flex: 1 }}>
-            <label>Nome da loja</label>
+            <label>Nome da unidade</label>
             <input
               value={newUnidadeNome}
               onChange={(e) => setNewUnidadeNome(e.target.value)}
-              placeholder="Ex: Loja Centro"
+              placeholder="Ex: Unidade Centro"
             />
           </div>
           <button onClick={createUnidade} disabled={creatingUnidade}>
-            {creatingUnidade ? "Criando..." : "Criar loja"}
+            {creatingUnidade ? "Criando..." : "Criar unidade"}
           </button>
         </div>
       </div>
@@ -565,10 +565,10 @@ export default function AdminAssignmentsPage() {
       <div className="spacer" />
 
       <div className="card">
-        <h2 style={{ marginTop: 0 }}>Apagar loja</h2>
+        <h2 style={{ marginTop: 0 }}>Apagar unidade</h2>
         <div className="row" style={{ alignItems: "flex-end", flexWrap: "wrap" }}>
           <div style={{ minWidth: 320, flex: 1 }}>
-            <label>Loja</label>
+            <label>Unidade</label>
             <select
               value={deleteUnidadeId ? String(deleteUnidadeId) : ""}
               onChange={(e) => setDeleteUnidadeId(e.target.value ? Number(e.target.value) : null)}
@@ -582,12 +582,12 @@ export default function AdminAssignmentsPage() {
             </select>
           </div>
           <button className="secondary" onClick={deleteUnidade} disabled={deletingUnidade}>
-            {deletingUnidade ? "Apagando..." : "Apagar loja"}
+            {deletingUnidade ? "Apagando..." : "Apagar unidade"}
           </button>
         </div>
         <div className="spacer" />
         <small className="muted">
-          Obs.: lojas em uso por supervisores, colaboradores ou pontos não podem ser apagadas.
+          Obs.: unidades em uso por supervisores, colaboradores ou pontos não podem ser apagadas.
         </small>
       </div>
 
@@ -657,7 +657,7 @@ export default function AdminAssignmentsPage() {
               <tr>
                 <th>Email</th>
                 <th>Função</th>
-                <th>Loja</th>
+                <th>Unidade</th>
                 <th>Ações</th>
               </tr>
             </thead>
@@ -736,8 +736,8 @@ export default function AdminAssignmentsPage() {
                 <th>Status</th>
                 <th>Entrada prevista</th>
                 <th>Saída prevista</th>
-                <th>Loja atual</th>
-                <th>Nova loja</th>
+                <th>Unidade atual</th>
+                <th>Nova unidade</th>
                 <th>Ações</th>
               </tr>
             </thead>

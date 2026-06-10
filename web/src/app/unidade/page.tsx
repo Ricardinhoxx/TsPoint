@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import CameraModal from "@/components/CameraModal";
+import ThemeToggle from "@/components/ThemeToggle";
 import Link from "next/link";
 
 type LocalTipo = "LOJA" | "ESCRITORIO" | "CD";
@@ -452,6 +453,7 @@ export default function MinhaUnidadePage() {
               <button className="secondary" onClick={openDiaristaModal}>
                 Registrar diarista
               </button>
+              <ThemeToggle />
               <button onClick={openCameraModal}>Registrar por câmera</button>
             </div>
 
@@ -498,6 +500,7 @@ export default function MinhaUnidadePage() {
                   <button type="button" className="mobileNavItem" role="menuitem" onClick={openDiaristaModal}>
                     Registrar diarista
                   </button>
+                  <ThemeToggle className="mobileNavItem" />
                   <button type="button" className="mobileNavItem mobileNavItemPrimary" role="menuitem" onClick={openCameraModal}>
                     Registrar por câmera
                   </button>
@@ -523,7 +526,7 @@ export default function MinhaUnidadePage() {
                   <th>Nome</th>
                   <th>Turno</th>
                   <th>Horário previsto</th>
-                  <th>Loja (cadastro)</th>
+                  <th>Unidade (cadastro)</th>
                   <th>Status</th>
                   <th>Base facial</th>
                   {role === "ADMIN" ? <th>Ações</th> : null}
@@ -538,7 +541,7 @@ export default function MinhaUnidadePage() {
                       {(f.hora_entrada_prevista || DEFAULT_HORA_ENTRADA)} - {(f.hora_saida_prevista || DEFAULT_HORA_SAIDA)}
                     </td>
                     <td>
-                      <span className="storeChip">{f.unidade_nome ?? "Loja não definida"}</span>{" "}
+                      <span className="storeChip">{f.unidade_nome ?? "Unidade não definida"}</span>{" "}
                       {role === "ADMIN" ? (
                         <small className="muted">id={f.unidade_id}</small>
                       ) : null}

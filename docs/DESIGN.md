@@ -69,7 +69,7 @@ Notas:
 
 ### Chips
 
-- `storeChip` representa loja/unidade.
+- `storeChip` representa unidade.
 - Deve ser usado para informacao contextual curta, nao para botoes.
 
 ## Login

@@ -43,6 +43,26 @@
   --radius-0: 8px;
 }
 
+:root[data-theme="dark"] {
+  --color-bg: #0f172a;
+  --color-surface: #172033;
+  --color-surface-soft: #1e293b;
+  --color-text: #f8fafc;
+  --color-muted: #cbd5e1;
+  --color-border: #475569;
+  --color-border-soft: #334155;
+  --color-primary: #60a5fa;
+  --color-primary-hover: #93c5fd;
+  --color-primary-contrast: #0f172a;
+  --color-accent: #34d399;
+  --color-danger: #f87171;
+  --color-warning: #fbbf24;
+  --color-focus-ring: rgba(96, 165, 250, 0.38);
+  --color-brand-dark: #f8fafc;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.28);
+  --shadow-md: 0 14px 30px rgba(0, 0, 0, 0.38);
+}
+
 html,
 body {
   padding: 0;
@@ -166,6 +186,17 @@ button.secondary:hover:not(:disabled) {
   border-color: #b9c7e8;
 }
 
+:root[data-theme="dark"] button.secondary:hover:not(:disabled),
+:root[data-theme="dark"] .btnLink.secondary:hover {
+  background: #24324a;
+  color: #dbeafe;
+  border-color: #60a5fa;
+}
+
+.themeToggle {
+  white-space: nowrap;
+}
+
 input {
   width: 100%;
   min-height: 42px;
@@ -202,6 +233,10 @@ label {
   color: #344054;
   font-weight: 700;
   margin-bottom: 6px;
+}
+
+:root[data-theme="dark"] label {
+  color: #cbd5e1;
 }
 
 table {
@@ -1756,6 +1791,69 @@ video {
 .presenceStatusDotWrap {
   display: flex;
   justify-content: center;
+}
+
+:root[data-theme="dark"] .hero,
+:root[data-theme="dark"] .card,
+:root[data-theme="dark"] .tableShell,
+:root[data-theme="dark"] .mobileNavPanel,
+:root[data-theme="dark"] .mobileNavItem,
+:root[data-theme="dark"] .presenceWireTopBar,
+:root[data-theme="dark"] .presenceWireLeftRail,
+:root[data-theme="dark"] .presenceWireMain,
+:root[data-theme="dark"] .presenceWireRightRail,
+:root[data-theme="dark"] .presenceWeekItem,
+:root[data-theme="dark"] .presenceMonthCell,
+:root[data-theme="dark"] .presenceSummaryCard,
+:root[data-theme="dark"] .presencePersonCard,
+:root[data-theme="dark"] .presenceRankingItem,
+:root[data-theme="dark"] .presenceLoadingScreen,
+:root[data-theme="dark"] .presenceFractionBox,
+:root[data-theme="dark"] .presencePersonSchedule span,
+:root[data-theme="dark"] .presencePeopleHeader strong,
+:root[data-theme="dark"] .presenceNoOvertime {
+  background: var(--color-surface);
+  border-color: var(--color-border-soft);
+  color: var(--color-text);
+}
+
+:root[data-theme="dark"] .presenceWireTopBar,
+:root[data-theme="dark"] .presenceWireLeftRail,
+:root[data-theme="dark"] .presenceWireMain,
+:root[data-theme="dark"] .presenceWireRightRail,
+:root[data-theme="dark"] .presenceLoadingScreen {
+  background: var(--color-surface-soft);
+}
+
+:root[data-theme="dark"] th,
+:root[data-theme="dark"] td,
+:root[data-theme="dark"] .muted,
+:root[data-theme="dark"] .presenceSubtitle,
+:root[data-theme="dark"] .presencePeopleHeader small,
+:root[data-theme="dark"] .presencePersonSchedule,
+:root[data-theme="dark"] .presenceNoOvertime,
+:root[data-theme="dark"] .presenceLoadingScreen span {
+  color: var(--color-muted);
+}
+
+:root[data-theme="dark"] .presenceTitle,
+:root[data-theme="dark"] .presenceWeekMainText,
+:root[data-theme="dark"] .presenceSummaryCard strong,
+:root[data-theme="dark"] .presencePersonName,
+:root[data-theme="dark"] .presencePersonSchedule strong,
+:root[data-theme="dark"] .presenceLoadingScreen strong {
+  color: var(--color-text);
+}
+
+:root[data-theme="dark"] tbody tr:hover,
+:root[data-theme="dark"] .presenceWeekItem:hover,
+:root[data-theme="dark"] .presenceMonthCell:hover {
+  background: #24324a;
+}
+
+:root[data-theme="dark"] .presenceDaySelected {
+  background: #1e3a5f !important;
+  border-color: #60a5fa !important;
 }
 
 @media (max-width: 1120px) {

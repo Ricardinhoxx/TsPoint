@@ -125,7 +125,7 @@ function fmtMinutes(totalMinutes: number) {
 
 export default function PresencaPage() {
   const [unidades, setUnidades] = useState<Unidade[]>([]);
-  const [lojaId, setLojaId] = useState<number | "ALL">("ALL");
+  const [unidadeId, setUnidadeId] = useState<number | "ALL">("ALL");
   const [period, setPeriod] = useState<Period>("WEEK");
   const [refDate, setRefDate] = useState(() => toDateOnly(new Date()));
   const [statusFilter, setStatusFilter] = useState<"ALL" | DayStatus>("ALL");
@@ -156,11 +156,11 @@ export default function PresencaPage() {
           : [];
 
       setUnidades(list);
-      if (list.length === 1) setLojaId(list[0].id);
+      if (list.length === 1) setUnidadeId(list[0].id);
     }
 
     loadUnidades()
-      .catch((e) => setError(e instanceof Error ? e.message : "Erro ao carregar lojas."))
+      .catch((e) => setError(e instanceof Error ? e.message : "Erro ao carregar unidades."))
       .finally(() => setUnidadesLoaded(true));
   }, []);
 
@@ -172,7 +172,7 @@ export default function PresencaPage() {
         const qs = new URLSearchParams();
         qs.set("period", period.toLowerCase());
         qs.set("ref_date", refDate);
-        if (lojaId !== "ALL") qs.set("unidade_id", String(lojaId));
+        if (unidadeId !== "ALL") qs.set("unidade_id", String(unidadeId));
         if (selectedDay) qs.set("selected_day", selectedDay);
         if (rightPanelMode === "RANKING") qs.set("with_ranking", "1");
 
@@ -196,7 +196,7 @@ export default function PresencaPage() {
       }
     }
     loadPresenca().catch(() => null);
-  }, [lojaId, period, refDate, selectedDay, rightPanelMode, unidadesLoaded]);
+  }, [unidadeId, period, refDate, selectedDay, rightPanelMode, unidadesLoaded]);
 
   const weekRows = useMemo(() => {
     return days
@@ -209,10 +209,10 @@ export default function PresencaPage() {
     return dayPeople.filter((p) => p.status_day === statusFilter);
   }, [dayPeople, statusFilter]);
 
-  const currentLojaName = useMemo(() => {
-    if (lojaId === "ALL") return "Todas as lojas";
-    return unidades.find((u) => u.id === lojaId)?.nome ?? "Loja selecionada";
-  }, [lojaId, unidades]);
+  const currentUnidadeName = useMemo(() => {
+    if (unidadeId === "ALL") return "Todas as unidades";
+    return unidades.find((u) => u.id === unidadeId)?.nome ?? "Unidade selecionada";
+  }, [unidadeId, unidades]);
 
   const summary = useMemo(() => {
     const total = weekRows.length;
@@ -232,7 +232,7 @@ export default function PresencaPage() {
 
   useEffect(() => {
     setSelectedDay(null);
-  }, [period, refDate, lojaId]);
+  }, [period, refDate, unidadeId]);
 
   if (!unidadesLoaded || !initialPointsLoaded) {
     return (
@@ -251,7 +251,7 @@ export default function PresencaPage() {
         <div>
           <p className="presenceKicker">Visão dos pontos</p>
           <h1 className="presenceTitle">Pontos</h1>
-          <p className="presenceSubtitle">Acompanhamento diário dos registros por loja, jornada e hora extra.</p>
+          <p className="presenceSubtitle">Acompanhamento diário dos registros por unidade, jornada e hora extra.</p>
         </div>
         <Link className="btnLink secondary" href="/unidade">
           Voltar para unidade
@@ -260,8 +260,8 @@ export default function PresencaPage() {
 
       <section className="presenceSummaryGrid presenceSummaryGridTop">
         <div className="presenceSummaryCard">
-          <small>Loja</small>
-          <strong>{currentLojaName}</strong>
+          <small>Unidade</small>
+          <strong>{currentUnidadeName}</strong>
         </div>
         <div className="presenceSummaryCard">
           <small>Dias no filtro</small>
@@ -281,12 +281,12 @@ export default function PresencaPage() {
 
       <div className="presenceWireTopBar">
         <div className="presenceFilterField">
-          <label>Loja</label>
+          <label>Unidade</label>
           <select
-            value={lojaId === "ALL" ? "ALL" : String(lojaId)}
+            value={unidadeId === "ALL" ? "ALL" : String(unidadeId)}
             onChange={(e) => {
               const v = e.target.value;
-              setLojaId(v === "ALL" ? "ALL" : Number(v));
+              setUnidadeId(v === "ALL" ? "ALL" : Number(v));
             }}
           >
             <option value="ALL">Todas</option>
